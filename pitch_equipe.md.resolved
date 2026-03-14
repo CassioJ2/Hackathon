@@ -1,0 +1,128 @@
+# AI-Native Project Manager — Resumo para a Equipe
+
+---
+
+## 📋 Para Todo Mundo (Overview)
+
+### O Problema
+
+Quem já usou Jira ou ClickUp sabe: manter as tasks atualizadas é chato e todo mundo esquece. Quando você está vibecodando com IA, isso fica ainda pior — a IA implementa uma funcionalidade inteira e as tasks continuam como "To Do" porque ninguém atualizou.
+
+### O que é o produto
+
+Um **app de gerenciamento de tasks** (estilo Jira/ClickUp) feito especificamente para times pequenosr que desenvolvem com IA.
+
+A grande diferença: as tasks **vivem dentro do próprio repositório do projeto**, como um arquivo de texto. Isso significa que a IA pode ler e atualizar as tasks sozinha, enquanto o time enxerga tudo numa interface visual.
+
+### Como funciona na prática
+
+1. Você abre o app no seu computador (é um executável, sem instalação)
+2. Conecta sua conta do GitHub
+3. Seleciona o repositório do projeto
+4. O app gera um kanban visual com as tasks do projeto
+5. Você move uma task para "Done" → o app atualiza o arquivo no GitHub automaticamente
+6. Seu colega abre o app e já vê a task atualizada, sem precisar falar nada
+
+A IA que você usa pra codar (Cursor, Windsurf etc.) consegue editar as tasks diretamente, como se fosse qualquer outro arquivo do projeto. O kanban atualiza sozinho.
+
+### Por que é diferente
+
+| Ferramentas atuais | Nosso app |
+|---|---|
+| Tasks separadas do código | Tasks dentro do repositório |
+| IA não sabe o que está no backlog | IA lê e edita as tasks diretamente |
+| Precisa atualizar manualmente | Sync automático entre UI e GitHub |
+| Requer conta e setup | Abre e usa |
+
+---
+
+## ⚙️ Para Devs (Parte Técnica)
+
+### Stack
+
+| Camada | Tecnologia |
+|---|---|
+| App Desktop | Electron |
+| UI | React + Vite |
+| Autenticação | GitHub OAuth |
+| Backend | **GitHub API** (sem servidor customizado) |
+| Armazenamento | `tasks.md` no repositório |
+
+### Arquitetura
+
+```
+[App Electron]
+    ↕ GitHub API (OAuth)
+[tasks.md no repositório]
+    ↕ edição direta
+[IA (Cursor, Windsurf, etc.)]
+```
+
+Não há servidor próprio. O GitHub é o backend, o sistema de sync e o controle de versão. Conflitos de edição simultânea são resolvidos pelo próprio Git.
+
+### Formato do `tasks.md`
+
+```md
+# Sprint 1
+
+- [ ] Implementar login
+  - [ ] Criar endpoint de login
+  - [x] Adicionar hash de senha
+
+- [x] Setup inicial do projeto
+```
+
+### Parser Layer
+
+Converte `tasks.md` ↔ JSON para consumo da UI:
+
+```json
+{
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Implementar login",
+      "status": "pending",
+      "subtasks": [
+        { "id": "TASK-001-1", "title": "Criar endpoint", "status": "pending" },
+        { "id": "TASK-001-2", "title": "Hash de senha", "status": "done" }
+      ]
+    }
+  ]
+}
+```
+
+### GitHub API — Operações principais
+
+| Operação | Endpoint |
+|---|---|
+| Leitura do `tasks.md` | `GET /repos/{owner}/{repo}/contents/tasks.md` |
+| Atualização (commit automático) | `PUT /repos/{owner}/{repo}/contents/tasks.md` |
+| Detecção de mudanças externas | Polling a cada 30s via `GET` + comparação de SHA |
+
+### Sync bidirecional
+
+- **UI → GitHub:** Ação do usuário gera um commit no `tasks.md` via API
+- **GitHub → UI:** Polling detecta SHA diferente do arquivo e re-renderiza
+- **IA → UI:** IA edita o arquivo no repo normalmente; o polling captura e atualiza o kanban
+
+### Estrutura de pastas
+
+```
+src/
+  parser/     ← markdown ↔ JSON
+  github/     ← cliente da GitHub API (auth, read, write)
+  ui/         ← React (kanban, backlog, login)
+  main/       ← Electron main process
+
+workflows/    ← documentação de workflows para IA
+.env.example  ← GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+```
+
+### Critérios de sucesso para o hackathon
+
+- [ ] OAuth GitHub → seleção de repo funcionando
+- [ ] `tasks.md` renderizado como kanban
+- [ ] Ação no kanban → commit automático no GitHub
+- [ ] Mudança externa no repo → UI atualiza
+- [ ] Entregável como `.exe`
