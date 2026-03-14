@@ -9,7 +9,10 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "test:parser": "node src/main/parser/run-tests.cjs",
+    "test:ipc": "node src/main/ipc/run-smoke-tests.cjs",
+    "test:backend": "npm.cmd run test:parser && npm.cmd run test:ipc"
   },
   "dependencies": {
     "electron-store": "^8.1.0"
@@ -30,7 +33,8 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": "dmg"

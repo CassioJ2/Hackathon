@@ -2,19 +2,27 @@
  * GitHub Device Flow Authentication
  *
  * Flow:
- * 1. POST para /login/device/code → recebe device_code + user_code
- * 2. Usuário acessa https://github.com/login/device e digita user_code
- * 3. Fazemos polling em /login/oauth/access_token até receber o token
+ * 1. POST para /login/device/code e recebe device_code + user_code
+ * 2. Usuario acessa https://github.com/login/device e informa o user_code
+ * 3. Fazemos polling em /login/oauth/access_token ate receber o token
  */
 
 const GITHUB_API = 'https://github.com'
 
+function ensureClientId(clientId) {
+    if (!clientId?.trim()) {
+        throw new Error('Missing GitHub Client ID')
+    }
+}
+
 /**
- * Inicia o Device Flow e retorna os dados para exibir ao usuário.
- * @param {string} clientId - GitHub App Client ID
+ * Inicia o Device Flow e retorna os dados para exibir ao usuario.
+ * @param {string} clientId
  * @returns {{ device_code, user_code, verification_uri, expires_in, interval }}
  */
 export async function startDeviceFlow(clientId) {
+    ensureClientId(clientId)
+
     const res = await fetch(`${GITHUB_API}/login/device/code`, {
         method: 'POST',
         headers: {
@@ -35,13 +43,15 @@ export async function startDeviceFlow(clientId) {
 }
 
 /**
- * Faz polling até o usuário autorizar e retorna o access_token.
+ * Faz polling ate o usuario autorizar e retorna o access_token.
  * @param {string} clientId
  * @param {string} deviceCode
- * @param {number} intervalSeconds - intervalo sugerido pelo GitHub (default 5s)
- * @returns {string} access_token
+ * @param {number} intervalSeconds
+ * @returns {Promise<string>}
  */
 export async function pollForToken(clientId, deviceCode, intervalSeconds = 5) {
+    ensureClientId(clientId)
+
     return new Promise((resolve, reject) => {
         const poll = setInterval(async () => {
             try {
@@ -58,29 +68,43 @@ export async function pollForToken(clientId, deviceCode, intervalSeconds = 5) {
                     })
                 })
 
+                if (!res.ok) {
+                    clearInterval(poll)
+                    reject(new Error(`Token polling failed: ${res.status}`))
+                    return
+                }
+
                 const data = await res.json()
 
                 if (data.access_token) {
                     clearInterval(poll)
                     console.log('[auth] Token received successfully')
                     resolve(data.access_token)
-                } else if (data.error === 'authorization_pending') {
-                    // Usuário ainda não autorizou — continua polling
-                } else if (data.error === 'slow_down') {
-                    // GitHub pediu pra esperar mais — aumenta o intervalo
+                    return
+                }
+
+                if (data.error === 'authorization_pending') {
+                    return
+                }
+
+                if (data.error === 'slow_down') {
                     clearInterval(poll)
                     setTimeout(() => {
                         pollForToken(clientId, deviceCode, intervalSeconds + 5)
                             .then(resolve)
                             .catch(reject)
                     }, (intervalSeconds + 5) * 1000)
-                } else if (data.error === 'expired_token') {
+                    return
+                }
+
+                if (data.error === 'expired_token') {
                     clearInterval(poll)
                     reject(new Error('Device code expired. Please try again.'))
-                } else {
-                    clearInterval(poll)
-                    reject(new Error(`Auth error: ${data.error}`))
+                    return
                 }
+
+                clearInterval(poll)
+                reject(new Error(`Auth error: ${data.error || 'unknown_error'}`))
             } catch (err) {
                 clearInterval(poll)
                 reject(err)

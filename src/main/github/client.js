@@ -1,6 +1,8 @@
+import { GitHubApiError } from './errors'
+
 /**
  * GitHub API Client
- * Todas as chamadas à API do GitHub via REST
+ * Todas as chamadas a API do GitHub via REST.
  */
 
 const API = 'https://api.github.com'
@@ -14,42 +16,68 @@ function headers(token) {
     }
 }
 
+async function readGitHubError(res, fallbackMessage) {
+    try {
+        const data = await res.json()
+        return {
+            message: data?.message || fallbackMessage,
+            code: data?.code || data?.error || null
+        }
+    } catch {
+        return {
+            message: fallbackMessage,
+            code: null
+        }
+    }
+}
+
 /**
- * Lista repositórios do usuário autenticado.
+ * Lista repositorios do usuario autenticado.
  * @param {string} token
- * @returns {Array<{ id, name, full_name, owner, private }>}
+ * @returns {Promise<Array<{ id, name, fullName, owner, private, updatedAt }>>}
  */
 export async function getRepos(token) {
     const res = await fetch(`${API}/user/repos?sort=updated&per_page=50`, {
         headers: headers(token)
     })
-    if (!res.ok) throw new Error(`getRepos failed: ${res.status}`)
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `getRepos failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
     const repos = await res.json()
-    return repos.map((r) => ({
-        id: r.id,
-        name: r.name,
-        fullName: r.full_name,
-        owner: r.owner.login,
-        private: r.private,
-        updatedAt: r.updated_at
+    return repos.map((repo) => ({
+        id: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        owner: repo.owner.login,
+        private: repo.private,
+        updatedAt: repo.updated_at
     }))
 }
 
 /**
- * Retorna o conteúdo de um arquivo no repositório.
+ * Retorna o conteudo de um arquivo no repositorio.
  * @param {string} token
  * @param {string} owner
  * @param {string} repo
- * @param {string} path - ex: 'tasks.md'
- * @returns {{ content: string, sha: string } | null}
+ * @param {string} path
+ * @returns {Promise<{ content: string, sha: string } | null>}
  */
 export async function getFile(token, owner, repo, path) {
     const res = await fetch(`${API}/repos/${owner}/${repo}/contents/${path}`, {
         headers: headers(token)
     })
 
-    if (res.status === 404) return null
-    if (!res.ok) throw new Error(`getFile failed: ${res.status}`)
+    if (res.status === 404) {
+        return null
+    }
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `getFile failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
 
     const data = await res.json()
     const content = Buffer.from(data.content, 'base64').toString('utf-8')
@@ -57,21 +85,25 @@ export async function getFile(token, owner, repo, path) {
 }
 
 /**
- * Cria ou atualiza um arquivo no repositório (cria um commit).
+ * Cria ou atualiza um arquivo no repositorio e gera um commit.
  * @param {string} token
  * @param {string} owner
  * @param {string} repo
  * @param {string} path
- * @param {string} content - conteúdo em texto puro (será convertido para base64)
- * @param {string|null} sha - SHA atual do arquivo (null se for criação)
- * @param {string} message - mensagem do commit
+ * @param {string} content
+ * @param {string|null} sha
+ * @param {string} message
+ * @returns {Promise<{ sha: string }>}
  */
 export async function updateFile(token, owner, repo, path, content, sha, message) {
     const body = {
         message,
         content: Buffer.from(content, 'utf-8').toString('base64')
     }
-    if (sha) body.sha = sha
+
+    if (sha) {
+        body.sha = sha
+    }
 
     const res = await fetch(`${API}/repos/${owner}/${repo}/contents/${path}`, {
         method: 'PUT',
@@ -80,8 +112,8 @@ export async function updateFile(token, owner, repo, path, content, sha, message
     })
 
     if (!res.ok) {
-        const err = await res.json()
-        throw new Error(`updateFile failed: ${res.status} — ${err.message}`)
+        const error = await readGitHubError(res, `updateFile failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
     }
 
     const data = await res.json()
@@ -89,12 +121,12 @@ export async function updateFile(token, owner, repo, path, content, sha, message
 }
 
 /**
- * Retorna apenas o SHA atual de um arquivo (usado pelo poller para detectar mudanças).
+ * Retorna apenas o SHA atual de um arquivo.
  * @param {string} token
  * @param {string} owner
  * @param {string} repo
  * @param {string} path
- * @returns {string|null} sha
+ * @returns {Promise<string|null>}
  */
 export async function getFileSha(token, owner, repo, path) {
     const file = await getFile(token, owner, repo, path)

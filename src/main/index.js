@@ -1,9 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { loadEnvFile } from './config/env'
 import { registerIpcHandlers } from './ipc/handlers'
 import { stopPoller } from './watcher/poller'
 
 const isDev = process.env.NODE_ENV === 'development'
+
+loadEnvFile()
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
