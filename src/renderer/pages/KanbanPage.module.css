@@ -1,0 +1,89 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--surface-page);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-graphite-mid);
+  background: var(--surface-card);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.appName {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.savingWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.savingText {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.errorText {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  max-width: 300px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.btnLogout {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-graphite-mid);
+  background: transparent;
+  color: var(--text-muted);
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.btnLogout:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.board {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  flex: 1;
+  overflow-x: auto;
+}
+
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  flex: 1;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
