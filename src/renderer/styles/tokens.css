@@ -1,29 +1,33 @@
+/* ─── Paleta CodeSprint ───────────────────────── */
 :root {
   /* Paleta base */
-  --color-baby-bear: #6a5745;
-  --color-bistre: #3b2c20;
-  --color-black-raspberry: #14130a;
-  --color-forestry: #2f5d20;
-  --color-moss-gardens: #758956;
+  --color-teal-dark: #005f73;
+  --color-teal: #00a676;
+  --color-teal-light: #94d2bd;
+  --color-gray-light: #e9ecef;
+  --color-white: #ffffff;
+  --color-graphite: #2d2d2d;
+  --color-graphite-mid: #3d3d3d;
+  --color-graphite-soft: #4f4f4f;
 
   /* ─── Superfícies ─────────────────────────────── */
-  --surface-page: var(--color-black-raspberry);
-  --surface-card: var(--color-bistre);
-  --surface-overlay: var(--color-baby-bear);
+  --surface-page: #0a0f0f;
+  --surface-card: #111917;
+  --surface-overlay: #1a2422;
 
   /* ─── Texto ───────────────────────────────────── */
-  --text-primary: #f0efec;
-  --text-secondary: var(--color-moss-gardens);
-  --text-muted: var(--color-baby-bear);
+  --text-primary: #ffffff;
+  --text-secondary: var(--color-teal-light);
+  --text-muted: var(--color-gray-light);
   --text-on-brand: #ffffff;
 
   /* ─── Brand ───────────────────────────────────── */
-  --color-brand: var(--color-forestry);
-  --color-brand-hover: var(--color-moss-gardens);
-  --color-accent: var(--color-moss-gardens);
+  --color-brand: var(--color-teal-dark);
+  --color-brand-hover: var(--color-teal);
+  --color-accent: var(--color-teal);
 
   /* ─── Semânticas ──────────────────────────────── */
-  --color-success: var(--color-moss-gardens);
+  --color-success: var(--color-teal);
   --color-warning: #b45309;
   --color-danger: #c0392b;
 
@@ -65,9 +69,9 @@
   --radius-full: 9999px;
 
   /* ─── Sombras ─────────────────────────────────── */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
 
   /* ─── Transições ──────────────────────────────── */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
