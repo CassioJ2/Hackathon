@@ -50,6 +50,7 @@ export function createIpcHandlers({
     return {
         'github:login': async () => {
             const clientId = getClientId(env)
+            console.log('[ipc] github:login invoked')
             const deviceData = await startDeviceFlow(clientId)
 
             pollForToken(clientId, deviceData.device_code, deviceData.interval)
@@ -59,6 +60,7 @@ export function createIpcHandlers({
                     startPoller(mainWindow)
                 })
                 .catch((err) => {
+                    console.error('[ipc] github:login async auth error:', err)
                     mainWindow.webContents.send('github:auth-error', err.message)
                 })
 

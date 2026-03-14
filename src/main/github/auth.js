@@ -1,3 +1,5 @@
+import { fetchWithTimeout, formatFetchError } from './http'
+
 /**
  * GitHub Device Flow Authentication
  *
@@ -23,23 +25,30 @@ function ensureClientId(clientId) {
 export async function startDeviceFlow(clientId) {
     ensureClientId(clientId)
 
-    const res = await fetch(`${GITHUB_API}/login/device/code`, {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            client_id: clientId,
-            scope: 'repo user'
+    try {
+        console.log('[auth] Starting GitHub Device Flow...')
+
+        const res = await fetchWithTimeout(`${GITHUB_API}/login/device/code`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                client_id: clientId,
+                scope: 'repo user'
+            })
         })
-    })
 
-    if (!res.ok) {
-        throw new Error(`Device flow init failed: ${res.status}`)
+        if (!res.ok) {
+            throw new Error(`Device flow init failed: ${res.status}`)
+        }
+
+        return res.json()
+    } catch (error) {
+        console.error('[auth] Device flow error:', error)
+        throw new Error(formatFetchError('GitHub device flow request failed', error))
     }
-
-    return res.json()
 }
 
 /**
@@ -55,7 +64,9 @@ export async function pollForToken(clientId, deviceCode, intervalSeconds = 5) {
     return new Promise((resolve, reject) => {
         const poll = setInterval(async () => {
             try {
-                const res = await fetch(`${GITHUB_API}/login/oauth/access_token`, {
+                console.log('[auth] Polling GitHub for device token...')
+
+                const res = await fetchWithTimeout(`${GITHUB_API}/login/oauth/access_token`, {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
@@ -107,7 +118,8 @@ export async function pollForToken(clientId, deviceCode, intervalSeconds = 5) {
                 reject(new Error(`Auth error: ${data.error || 'unknown_error'}`))
             } catch (err) {
                 clearInterval(poll)
-                reject(err)
+                console.error('[auth] Token polling error:', err)
+                reject(new Error(formatFetchError('GitHub token polling failed', err)))
             }
         }, intervalSeconds * 1000)
     })
