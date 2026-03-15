@@ -7,6 +7,10 @@
   flex-direction: column;
   gap: var(--space-3);
   transition: border-color var(--duration-fast) var(--ease-default);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .card:hover {
@@ -31,12 +35,16 @@
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   line-height: var(--leading-base);
+  word-break: break-word;
+  white-space: normal;
 }
 
 .description {
   font-size: 11px;
   color: var(--text-muted);
   line-height: var(--leading-relaxed);
+  word-break: break-word;
+  white-space: normal;
 }
 
 .infoBlock {
@@ -115,6 +123,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-width: 0;
 }
 
 .btnDelete {
@@ -140,6 +149,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .progressBar {
@@ -164,20 +174,29 @@
 .subtaskList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   margin-top: var(--space-1);
+  min-width: 0;
 }
 
 .subtaskButton {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: transparent;
-  border: none;
-  padding: 0;
+  background: var(--surface-overlay);
+  border: 1px solid var(--color-graphite-mid);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
   text-align: left;
   color: inherit;
   cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-default);
+  min-width: 0;
+  width: 100%;
+}
+
+.subtaskButton:hover {
+  border-color: var(--color-teal);
 }
 
 .subtaskCheckbox {
@@ -203,6 +222,10 @@
 .subtaskTitle {
   font-size: var(--text-xs);
   color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .subtaskTitleDone {
@@ -217,6 +240,9 @@
   border-radius: var(--radius-full);
   border: 1px solid var(--flag-color);
   color: var(--flag-color);
+  white-space: normal;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .cardTypeBadge {
@@ -229,7 +255,10 @@
   border-radius: var(--radius-full);
   border: 1px solid var(--type-color);
   color: var(--type-color);
-  width: fit-content;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .primaryAction {

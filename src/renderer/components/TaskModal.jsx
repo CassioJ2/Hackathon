@@ -59,7 +59,9 @@ export default function TaskModal({
           setCollaboratorsError("");
         }
 
-        const result = await window.electron.invoke("github:repo-collaborators");
+        const result = await window.electron.invoke(
+          "github:repo-collaborators",
+        );
 
         if (isMounted) {
           setCollaborators(Array.isArray(result) ? result : []);
@@ -228,9 +230,11 @@ export default function TaskModal({
                 type="text"
                 placeholder="Ex: Implementar autenticacao"
                 value={title}
+                maxLength={80}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
               />
+              <span className={styles.charCount}>{title.length}/80</span>
             </div>
 
             <div className={styles.field}>
@@ -239,9 +243,11 @@ export default function TaskModal({
                 className={styles.textarea}
                 placeholder="Descreva a task em detalhes..."
                 value={description}
+                maxLength={300}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
               />
+              <span className={styles.charCount}>{description.length}/300</span>
             </div>
 
             <div className={styles.field}>
@@ -249,7 +255,7 @@ export default function TaskModal({
               <input
                 className={styles.input}
                 type="text"
-                placeholder="Buscar por nome ou @login"
+                placeholder="Buscar por nome ou @usuario..."
                 value={assigneeSearch}
                 onChange={(e) => setAssigneeSearch(e.target.value)}
                 disabled={isLoadingCollaborators}
@@ -389,7 +395,10 @@ export default function TaskModal({
                   </div>
                 ))}
               </div>
-              <button className={styles.btnAddSubtask} onClick={handleAddSubtask}>
+              <button
+                className={styles.btnAddSubtask}
+                onClick={handleAddSubtask}
+              >
                 + Adicionar subtask
               </button>
             </div>
