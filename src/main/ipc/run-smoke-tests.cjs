@@ -783,7 +783,7 @@ async function main() {
         assert.equal(repoWrites.length, 2)
     })
 
-    await run('tasks:save serializa salvamentos consecutivos e reutiliza o SHA atualizado', async () => {
+    await run('tasks:save deduplica cliques repetidos enquanto o sync ainda esta em andamento', async () => {
         const { mainWindow } = createMainWindowRecorder()
         const store = createMemoryStore({
             token: 'token-123',
@@ -809,10 +809,6 @@ async function main() {
                     return { sha: 'sha-1' }
                 }
 
-                if (sha === 'sha-remoto-final') {
-                    return { sha: 'sha-2' }
-                }
-
                 throw new Error(`unexpected sha ${sha}`)
             },
             parse: () => [],
@@ -832,7 +828,7 @@ async function main() {
 
         const results = await Promise.all([firstSave, secondSave])
 
-        assert.deepEqual(seenShas, ['sha-inicial', 'sha-remoto-final'])
+        assert.deepEqual(seenShas, ['sha-inicial'])
         assert.equal(results[0].sha, 'sha-remoto-final')
         assert.equal(results[1].sha, 'sha-remoto-final')
         assert.equal(store.get('tasksSha'), 'sha-remoto-final')

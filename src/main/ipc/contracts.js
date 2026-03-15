@@ -95,14 +95,26 @@ async function syncManagedFilesToRemote({
     const nextRemoteFileShas = { ...remoteFileShas }
 
     for (const fileName of REMOTE_TASK_FILES) {
-        const content =
-            await readRepoContextFile(localPath, fileName)
+        const content = await readRepoContextFile(localPath, fileName)
 
         if (!content) {
             continue
         }
 
         let fileSha = nextRemoteFileShas[fileName] || null
+
+        if (fileSha) {
+            const remoteFile = await getFile(token, owner, repo, fileName, {
+                ref: branch
+            })
+
+            if (remoteFile?.content === content) {
+                nextRemoteFileShas[fileName] = remoteFile.sha
+                continue
+            }
+
+            fileSha = remoteFile?.sha || fileSha
+        }
 
         try {
             const result = await updateFile(
@@ -206,18 +218,30 @@ export function createIpcHandlers({
     createInitialTasksMarkdown
 }) {
     const saveQueues = new Map()
+    const inFlightSaves = new Map()
 
     function enqueueRepoSave(repoKey, operation) {
+        const inFlight = inFlightSaves.get(repoKey)
+        if (inFlight) {
+            return inFlight
+        }
+
         const previous = saveQueues.get(repoKey) || Promise.resolve()
         const next = previous.catch(() => {}).then(operation)
+        const tracked = next.finally(() => {
+            if (inFlightSaves.get(repoKey) === tracked) {
+                inFlightSaves.delete(repoKey)
+            }
 
-        saveQueues.set(repoKey, next)
-
-        return next.finally(() => {
             if (saveQueues.get(repoKey) === next) {
                 saveQueues.delete(repoKey)
             }
         })
+
+        saveQueues.set(repoKey, next)
+        inFlightSaves.set(repoKey, tracked)
+
+        return tracked
     }
 
     return {

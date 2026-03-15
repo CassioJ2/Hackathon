@@ -109,6 +109,7 @@ export default function KanbanPage({
   const [backlogSort, setBacklogSort] = useState("priority");
   const tasksRef = useRef(initialTasks);
   const hasChangesRef = useRef(initialHasChanges);
+  const syncInFlightRef = useRef(false);
 
   const { columns } = useColumns();
   const { allFlags } = useFlags();
@@ -274,7 +275,12 @@ export default function KanbanPage({
   };
 
   const handleSync = async () => {
+    if (syncInFlightRef.current) {
+      return;
+    }
+
     try {
+      syncInFlightRef.current = true;
       setStep("syncing");
       setError("");
       if (cloudReview?.conflicts?.length) {
@@ -314,11 +320,18 @@ export default function KanbanPage({
     } catch (err) {
       setError(err.message);
       setStep("error");
+    } finally {
+      syncInFlightRef.current = false;
     }
   };
 
   const handlePullRemote = async () => {
+    if (syncInFlightRef.current) {
+      return;
+    }
+
     try {
+      syncInFlightRef.current = true;
       setStep("syncing");
       setError("");
       const result = await window.electron.invoke("tasks:pull");
@@ -335,6 +348,8 @@ export default function KanbanPage({
     } catch (err) {
       setError(err.message);
       setStep("error");
+    } finally {
+      syncInFlightRef.current = false;
     }
   };
 
