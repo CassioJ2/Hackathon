@@ -26,7 +26,6 @@ function FlagEditor({ flag, onSave, onCancel }) {
         className={styles.editorInput}
         placeholder="Nome da flag"
         value={name}
-        maxLength={20}
         onChange={(e) => setName(e.target.value)}
         autoFocus
       />
