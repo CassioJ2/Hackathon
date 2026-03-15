@@ -19,8 +19,37 @@ import { useColumns } from "../context/ColumnsContext";
 import { useFlags } from "../context/FlagsContext";
 import ColumnsManager from "../components/ColumnsManager";
 
+function normalizeSubtaskForCompare(subtask = {}) {
+  return {
+    title: (subtask.title || "").trim(),
+    status: subtask.status || "pending",
+  };
+}
+
+function normalizeTaskForCompare(task = {}) {
+  return {
+    title: (task.title || "").trim(),
+    description: (task.description || "").trim(),
+    status: task.status || "pending",
+    priority: task.priority || "",
+    cardType: task.cardType || "task",
+    assignee: task.assignee || "",
+    labels: [...(task.labels || [])].sort(),
+    subtasks: [...(task.subtasks || [])]
+      .map(normalizeSubtaskForCompare)
+      .sort((left, right) =>
+        `${left.title}:${left.status}`.localeCompare(
+          `${right.title}:${right.status}`,
+        ),
+      ),
+  };
+}
+
 function areTasksEqual(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return (
+    JSON.stringify(normalizeTaskForCompare(left)) ===
+    JSON.stringify(normalizeTaskForCompare(right))
+  );
 }
 
 function buildCloudReview(localTasks, remoteTasks) {
@@ -559,7 +588,7 @@ export default function KanbanPage({
       }
 
       const localTask = tasks.find((task) => task.id === incomingTask.id);
-      if (JSON.stringify(localTask) !== JSON.stringify(incomingTask)) {
+      if (!areTasksEqual(localTask, incomingTask)) {
         changed += 1;
       }
     }
