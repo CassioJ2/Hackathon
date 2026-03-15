@@ -7,6 +7,7 @@ const store = new Store({
         token: null,
         activeRepo: null,
         tasksSha: null,
+        pendingRemoteSha: null,
         remoteFileShas: {},
         dirtyRepos: {}
     }
@@ -18,6 +19,7 @@ export function resetPersistedSessionState() {
     store.set('token', null)
     store.set('activeRepo', null)
     store.set('tasksSha', null)
+    store.set('pendingRemoteSha', null)
     store.set('remoteFileShas', {})
     store.set('dirtyRepos', {})
 }

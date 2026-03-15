@@ -2,14 +2,14 @@ import { watch } from 'node:fs'
 import { getFileSha, getFile } from '../github/client'
 import { parse } from '../parser/index'
 import store from '../store'
-import { writeLocalTasksMarkdown } from '../tasks/cache'
-import { getTasksPath, readRepoTasksMarkdown, writeRepoTasksMarkdown } from '../tasks/local-repo'
+import { readRepoTasksMarkdown, writeRepoTasksMarkdown } from '../tasks/local-repo'
 
 const POLL_INTERVAL_MS = 30_000
 let pollerTimer = null
 let localWatcher = null
 let localWatcherDebounce = null
 let lastObservedLocalMarkdown = null
+const REMOTE_REMOVED_SENTINEL = '__REMOTE_TASKS_REMOVED__'
 
 function repoKey({ owner, repo }) {
     return `${owner}/${repo}`
@@ -104,42 +104,60 @@ export function startPoller(mainWindow) {
                 ref: getTasksBranch(activeRepo)
             })
             const cachedSha = store.get('tasksSha')
-            const dirtyRepos = store.get('dirtyRepos') || {}
-            const hasLocalChanges = !!dirtyRepos[repoKey(activeRepo)]
+            const pendingRemoteSha = store.get('pendingRemoteSha')
 
             if (currentSha === cachedSha) {
+                if (pendingRemoteSha) {
+                    store.set('pendingRemoteSha', null)
+                }
                 return
             }
 
             if (!currentSha) {
-                console.log('[poller] tasks.md was removed externally')
-                store.set('tasksSha', null)
-                mainWindow.webContents.send('tasks:external-update', [])
+                if (pendingRemoteSha === REMOTE_REMOVED_SENTINEL) {
+                    return
+                }
+
+                console.log('[poller] tasks.md was removed externally and is pending pull')
+                store.set('pendingRemoteSha', REMOTE_REMOVED_SENTINEL)
+                mainWindow.webContents.send('tasks:cloud-pending', {
+                    sha: null,
+                    tasks: [],
+                    removed: true
+                })
                 return
             }
 
-            console.log('[poller] External change detected, fetching new tasks...')
+            if (currentSha === pendingRemoteSha) {
+                return
+            }
+
+            console.log('[poller] External change detected, pending remote pull...')
 
             const file = await getFile(token, owner, repo, 'tasks.md', {
                 ref: getTasksBranch(activeRepo)
             })
             if (!file) {
-                store.set('tasksSha', null)
-                mainWindow.webContents.send('tasks:external-update', [])
+                if (pendingRemoteSha === REMOTE_REMOVED_SENTINEL) {
+                    return
+                }
+
+                store.set('pendingRemoteSha', REMOTE_REMOVED_SENTINEL)
+                mainWindow.webContents.send('tasks:cloud-pending', {
+                    sha: null,
+                    tasks: [],
+                    removed: true
+                })
                 return
             }
 
             const tasks = parse(file.content)
-            store.set('tasksSha', currentSha)
-            if (hasLocalChanges) {
-                mainWindow.webContents.send('tasks:remote-conflict', tasks)
-                return
-            }
-
-            await writeLocalTasksMarkdown(owner, repo, file.content)
-            await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
-            syncLocalWatcherSnapshot(file.content)
-            mainWindow.webContents.send('tasks:external-update', tasks)
+            store.set('pendingRemoteSha', currentSha)
+            mainWindow.webContents.send('tasks:cloud-pending', {
+                sha: currentSha,
+                tasks,
+                removed: false
+            })
         } catch (err) {
             console.error('[poller] Error:', err.message)
         }

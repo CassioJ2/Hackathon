@@ -280,6 +280,7 @@ export function createIpcHandlers({
             })
 
             store.set('activeRepo', activeRepo)
+            store.set('pendingRemoteSha', null)
             await ensureRepoAiContextFiles(activeRepo.localPath, activeRepo)
             startPoller(mainWindow)
 
@@ -297,6 +298,7 @@ export function createIpcHandlers({
                         ref: getTasksBranch(activeRepo)
                     })
                     store.set('tasksSha', remoteFile?.sha || null)
+                    store.set('pendingRemoteSha', null)
                     store.set('remoteFileShas', {
                         ...(store.get('remoteFileShas') || {}),
                         'tasks.md': remoteFile?.sha || null
@@ -323,6 +325,7 @@ export function createIpcHandlers({
                     )
                 } catch {
                     store.set('tasksSha', null)
+                    store.set('pendingRemoteSha', null)
                     setRepoDirty(store, activeRepo, existingDirty)
                 }
 
@@ -338,6 +341,7 @@ export function createIpcHandlers({
                         ref: getTasksBranch(activeRepo)
                     })
                     store.set('tasksSha', remoteFile?.sha || null)
+                    store.set('pendingRemoteSha', null)
                     store.set('remoteFileShas', {
                         ...(store.get('remoteFileShas') || {}),
                         'tasks.md': remoteFile?.sha || null
@@ -364,6 +368,7 @@ export function createIpcHandlers({
                     )
                 } catch {
                     store.set('tasksSha', null)
+                    store.set('pendingRemoteSha', null)
                     setRepoDirty(store, activeRepo, existingDirty)
                 }
 
@@ -376,12 +381,14 @@ export function createIpcHandlers({
 
             if (!file) {
                 store.set('tasksSha', null)
+                store.set('pendingRemoteSha', null)
                 store.set('remoteFileShas', store.get('remoteFileShas') || {})
                 setRepoDirty(store, activeRepo, false)
                 return []
             }
 
             store.set('tasksSha', file.sha)
+            store.set('pendingRemoteSha', null)
             const remoteFileShas = { ...(store.get('remoteFileShas') || {}), 'tasks.md': file.sha }
             Object.assign(
                 remoteFileShas,
@@ -397,9 +404,9 @@ export function createIpcHandlers({
                 })
             )
             store.set('remoteFileShas', remoteFileShas)
+            syncLocalWatcherSnapshot(file.content)
             await writeLocalTasksMarkdown(owner, repo, file.content)
             await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
-            syncLocalWatcherSnapshot(file.content)
             setRepoDirty(store, activeRepo, false)
             return parse(file.content)
         },
@@ -410,6 +417,7 @@ export function createIpcHandlers({
             const { owner, repo } = activeRepo
 
             store.set('activeRepo', activeRepo)
+            store.set('pendingRemoteSha', null)
             await ensureRepoAiContextFiles(activeRepo.localPath, activeRepo)
             startPoller(mainWindow)
 
@@ -423,9 +431,9 @@ export function createIpcHandlers({
             }
 
             const markdown = createInitialTasksMarkdown()
+            syncLocalWatcherSnapshot(markdown)
             await writeLocalTasksMarkdown(owner, repo, markdown)
             await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
-            syncLocalWatcherSnapshot(markdown)
             setRepoDirty(store, activeRepo, true)
             return {
                 created: true,
@@ -439,9 +447,9 @@ export function createIpcHandlers({
             const { owner, repo } = activeRepo
             const markdown = stringify(tasks)
 
+            syncLocalWatcherSnapshot(markdown)
             await writeLocalTasksMarkdown(owner, repo, markdown)
             await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
-            syncLocalWatcherSnapshot(markdown)
             setRepoDirty(store, activeRepo, dirty)
 
             return { success: true }
@@ -461,18 +469,20 @@ export function createIpcHandlers({
 
             if (!file) {
                 store.set('tasksSha', null)
+                store.set('pendingRemoteSha', null)
                 if (getRepoDirty(store, activeRepo)) {
                     return { mode: 'conflict', tasks: [], sha: null }
                 }
 
+                syncLocalWatcherSnapshot('# Tasks\n')
                 await writeLocalTasksMarkdown(owner, repo, '# Tasks\n')
                 await writeRepoTasksMarkdown(activeRepo.localPath, '# Tasks\n')
-                syncLocalWatcherSnapshot('# Tasks\n')
                 setRepoDirty(store, activeRepo, false)
                 return { mode: 'applied', tasks: [], sha: null }
             }
 
             store.set('tasksSha', file.sha)
+            store.set('pendingRemoteSha', null)
             Object.assign(
                 remoteFileShas,
                 await loadRemoteManagedFileShas({
@@ -491,9 +501,9 @@ export function createIpcHandlers({
                 return { mode: 'conflict', tasks: remoteTasks, sha: file.sha }
             }
 
+            syncLocalWatcherSnapshot(file.content)
             await writeLocalTasksMarkdown(owner, repo, file.content)
             await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
-            syncLocalWatcherSnapshot(file.content)
             setRepoDirty(store, activeRepo, false)
 
             return { mode: 'applied', tasks: remoteTasks, sha: file.sha }
@@ -508,9 +518,9 @@ export function createIpcHandlers({
 
             await ensureBranch(token, owner, repo, getTasksBranch(activeRepo))
 
+            syncLocalWatcherSnapshot(localMarkdown)
             await writeLocalTasksMarkdown(owner, repo, localMarkdown)
             await writeRepoTasksMarkdown(activeRepo.localPath, localMarkdown)
-            syncLocalWatcherSnapshot(localMarkdown)
             setRepoDirty(store, activeRepo, true)
 
             return enqueueRepoSave(repoKey, async () => {
@@ -529,6 +539,7 @@ export function createIpcHandlers({
                         { branch: getTasksBranch(activeRepo) }
                     )
                     store.set('tasksSha', result.sha)
+                    store.set('pendingRemoteSha', null)
                     const syncedFileShas = await syncManagedFilesToRemote({
                         token,
                         owner,
@@ -550,13 +561,14 @@ export function createIpcHandlers({
 
                     if (latestFile) {
                         store.set('tasksSha', latestFile.sha)
+                        store.set('pendingRemoteSha', null)
                         store.set('remoteFileShas', {
                             ...(store.get('remoteFileShas') || {}),
                             'tasks.md': latestFile.sha
                         })
+                        syncLocalWatcherSnapshot(latestFile.content)
                         await writeLocalTasksMarkdown(owner, repo, latestFile.content)
                         await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
-                        syncLocalWatcherSnapshot(latestFile.content)
                         setRepoDirty(store, activeRepo, false)
                         return {
                             success: true,
@@ -577,6 +589,7 @@ export function createIpcHandlers({
 
                     if (latestFile) {
                         store.set('tasksSha', latestFile.sha)
+                        store.set('pendingRemoteSha', latestFile.sha)
                         store.set('remoteFileShas', {
                             ...(store.get('remoteFileShas') || {}),
                             'tasks.md': latestFile.sha
@@ -584,9 +597,9 @@ export function createIpcHandlers({
                         const latestTasks = parse(latestFile.content)
 
                         if (latestFile.content === localMarkdown) {
+                            syncLocalWatcherSnapshot(latestFile.content)
                             await writeLocalTasksMarkdown(owner, repo, latestFile.content)
                             await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
-                            syncLocalWatcherSnapshot(latestFile.content)
                             setRepoDirty(store, activeRepo, false)
                             return {
                                 success: true,
@@ -604,6 +617,7 @@ export function createIpcHandlers({
                     }
 
                     store.set('tasksSha', null)
+                    store.set('pendingRemoteSha', null)
                     return {
                         success: false,
                         mode: 'conflict',
@@ -627,6 +641,7 @@ export function createIpcHandlers({
             store.set('token', null)
             store.set('activeRepo', null)
             store.set('tasksSha', null)
+            store.set('pendingRemoteSha', null)
             store.set('remoteFileShas', {})
             store.set('dirtyRepos', {})
             stopPoller()

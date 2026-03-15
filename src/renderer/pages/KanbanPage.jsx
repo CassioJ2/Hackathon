@@ -100,6 +100,7 @@ export default function KanbanPage({
   const [collaborators, setCollaborators] = useState([]);
   const [incomingConflict, setIncomingConflict] = useState(null);
   const [cloudReview, setCloudReview] = useState(null);
+  const [cloudPending, setCloudPending] = useState(null);
   const [activeView, setActiveView] = useState("board");
   const [backlogSearch, setBacklogSearch] = useState("");
   const [backlogPriority, setBacklogPriority] = useState("");
@@ -171,25 +172,19 @@ export default function KanbanPage({
   };
 
   useEffect(() => {
-    const cleanup = window.electron.on(
-      "tasks:external-update",
-      (updatedTasks) => {
-        applyCloudChanges(updatedTasks, "github").catch((err) => {
-          setError(err.message);
-          setStep("error");
-        });
-      },
-    );
-
-    const cleanupConflict = window.electron.on(
-      "tasks:remote-conflict",
-      (incomingTasks) => {
-        applyCloudChanges(incomingTasks, "github").catch((err) => {
-          setError(err.message);
-          setStep("error");
-        });
-      },
-    );
+    const cleanup = window.electron.on("tasks:cloud-pending", (payload) => {
+      setCloudPending({
+        sha: payload?.sha || null,
+        removed: !!payload?.removed,
+        tasks: Array.isArray(payload?.tasks) ? payload.tasks : [],
+      });
+      setToast({
+        message: payload?.removed
+          ? "Mudancas na nuvem removeram o tasks.md. Nada local foi alterado. Use 'Puxar da nuvem' para revisar."
+          : "Existem mudancas novas na nuvem. Nada local foi alterado. Use 'Puxar da nuvem' para revisar.",
+        type: "warning",
+      });
+    });
 
     const cleanupLocalUpdate = window.electron.on(
       "tasks:local-file-update",
@@ -217,7 +212,6 @@ export default function KanbanPage({
 
     return () => {
       cleanup?.();
-      cleanupConflict?.();
       cleanupLocalUpdate?.();
       cleanupLocalConflict?.();
     };
@@ -291,6 +285,14 @@ export default function KanbanPage({
         });
         return;
       }
+      if (cloudPending) {
+        setStep("ready");
+        setToast({
+          message: "Existe conteudo novo na nuvem pendente. Puxe da nuvem e revise antes de enviar.",
+          type: "warning",
+        });
+        return;
+      }
       const result = await window.electron.invoke("tasks:save", {
         tasks: tasksRef.current,
         commitMessage: "chore: update tasks",
@@ -303,6 +305,7 @@ export default function KanbanPage({
       if (result?.tasks) {
         setTasks(result.tasks);
       }
+      setCloudPending(null);
       setStep("ready");
       setHasChanges(false);
       setIncomingConflict(null);
@@ -319,6 +322,7 @@ export default function KanbanPage({
       setStep("syncing");
       setError("");
       const result = await window.electron.invoke("tasks:pull");
+      setCloudPending(null);
 
       if (result?.mode === "conflict") {
         await applyCloudChanges(result.tasks || [], "github");
@@ -483,6 +487,7 @@ export default function KanbanPage({
       setHasChanges(false);
       await persistTasksLocally(incomingConflict.tasks, false);
       setIncomingConflict(null);
+      setCloudPending(null);
       setToast({
         message:
           incomingConflict.source === "local"
@@ -533,6 +538,7 @@ export default function KanbanPage({
 
     if (remaining.length === 0) {
       setCloudReview(null);
+      setCloudPending(null);
       setToast({
         message: "Mudancas da nuvem revisadas.",
         type: "success",
@@ -557,6 +563,7 @@ export default function KanbanPage({
 
     if (remaining.length === 0) {
       setCloudReview(null);
+      setCloudPending(null);
       setToast({
         message: "Mudancas da nuvem revisadas. O que voce manteve local ficara pronto para envio.",
         type: "success",
@@ -736,7 +743,7 @@ export default function KanbanPage({
           <button
             className={`${styles.btnSync} ${hasChanges ? styles.btnSyncPending : ""}`}
             onClick={handleSync}
-            disabled={step === "syncing" || !hasChanges || !!cloudReview?.conflicts?.length}
+            disabled={step === "syncing" || !hasChanges || !!cloudReview?.conflicts?.length || !!cloudPending}
           >
             {step === "syncing" ? (
               <>
@@ -763,6 +770,21 @@ export default function KanbanPage({
                 {cloudReviewSummary.autoAddedCount} cards novos adicionados automaticamente. {cloudReviewSummary.conflicts} cards precisam revisao.
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {cloudPending && !cloudReview && (
+        <div className={styles.conflictBar}>
+          <div className={styles.conflictText}>
+            {cloudPending.removed
+              ? "Existe uma mudanca pendente na nuvem que remove o tasks.md."
+              : "Existe conteudo novo na nuvem aguardando revisao. Nada local foi alterado automaticamente."}
+          </div>
+          <div className={styles.conflictActions}>
+            <button className={styles.btnPrimary} onClick={handlePullRemote}>
+              Puxar da nuvem
+            </button>
           </div>
         </div>
       )}
