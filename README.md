@@ -146,3 +146,10 @@ O foco da submissao esta em:
 O CodeSprint propoe uma ponte mais natural entre planejamento e implementacao.
 
 Em vez de forcar as equipes a escolher entre organizacao visual e fluxo baseado em repositorio, a plataforma conecta os dois lados. Isso cria um processo mais transparente, melhora a colaboracao e mantem a gestao do projeto perto de onde o trabalho realmente acontece.
+
+## Nome dos membros:
+
+- [Cássio João Teodoro de Almeida](https://github.com/CassioJ2)
+- [João Victor Mesquita](https://github.com/eggdraz)
+- [Maria Luisa Rabelo Medeiros Sanches](https://github.com/marialuisasanches)
+- Ana Beatriz Amaro Linhares 
