@@ -578,30 +578,17 @@ export function createIpcHandlers({
                             'tasks.md': result.sha
                         }
                     })
-                    store.set('remoteFileShas', syncedFileShas)
-                    const latestFile = await getFile(token, owner, repo, 'tasks.md', {
-                        ref: getTasksBranch(activeRepo)
+                    store.set('remoteFileShas', {
+                        ...syncedFileShas,
+                        'tasks.md': result.sha
                     })
+                    setRepoDirty(store, activeRepo, false)
 
-                    if (latestFile) {
-                        store.set('tasksSha', latestFile.sha)
-                        store.set('pendingRemoteSha', null)
-                        store.set('remoteFileShas', {
-                            ...(store.get('remoteFileShas') || {}),
-                            'tasks.md': latestFile.sha
-                        })
-                        syncLocalWatcherSnapshot(latestFile.content)
-                        await writeLocalTasksMarkdown(owner, repo, latestFile.content)
-                        await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
-                        setRepoDirty(store, activeRepo, false)
-                        return {
-                            success: true,
-                            sha: latestFile.sha,
-                            tasks: parse(latestFile.content)
-                        }
+                    return {
+                        success: true,
+                        sha: result.sha,
+                        tasks
                     }
-
-                    return { success: true, sha: result.sha, tasks }
                 } catch (error) {
                     if (!isShaConflict(error)) {
                         throw error

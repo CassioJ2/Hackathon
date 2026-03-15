@@ -829,12 +829,12 @@ async function main() {
         const results = await Promise.all([firstSave, secondSave])
 
         assert.deepEqual(seenShas, ['sha-inicial'])
-        assert.equal(results[0].sha, 'sha-remoto-final')
-        assert.equal(results[1].sha, 'sha-remoto-final')
-        assert.equal(store.get('tasksSha'), 'sha-remoto-final')
+        assert.equal(results[0].sha, 'sha-1')
+        assert.equal(results[1].sha, 'sha-1')
+        assert.equal(store.get('tasksSha'), 'sha-1')
     })
 
-    await run('tasks:save atualiza cache local com a versao remota final', async () => {
+    await run('tasks:save preserva o estado local apos envio bem-sucedido', async () => {
         const { mainWindow } = createMainWindowRecorder()
         const store = createMemoryStore({
             token: 'token-123',
@@ -869,12 +869,12 @@ async function main() {
 
         const result = await handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' })
 
-        assert.equal(result.sha, 'sha-remoto-final')
-        assert.equal(result.tasks[0].title, 'Remota final')
-        assert.equal(writes.length, 2)
-        assert.equal(writes[1][2], '# Tasks\n\n- [x] Remota final\n')
-        assert.equal(repoWrites.length, 2)
-        assert.equal(repoWrites[1][1], '# Tasks\n\n- [x] Remota final\n')
+        assert.equal(result.sha, 'sha-atualizada')
+        assert.deepEqual(result.tasks, [])
+        assert.equal(writes.length, 1)
+        assert.equal(writes[0][2], '# Tasks\n\n- [ ] Local\n')
+        assert.equal(repoWrites.length, 1)
+        assert.equal(repoWrites[0][1], '# Tasks\n\n- [ ] Local\n')
     })
 
     await run('tasks:save nao reescreve a branch inteira apos atualizar tasks.md', async () => {
@@ -911,7 +911,7 @@ async function main() {
 
         const result = await handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' })
 
-        assert.equal(result.sha, 'sha-remoto-final')
+        assert.equal(result.sha, 'sha-atualizada')
         assert.equal(remoteSnapshotCalls, 0)
     })
 
