@@ -2,6 +2,8 @@ import { useState } from "react";
 import styles from "./TaskModal.module.css";
 import { useFlags } from "../context/FlagsContext";
 import FlagsManager from "./FlagsManager";
+import { useCardTypes } from "../context/CardTypesContext";
+import CardTypesManager from "./CardTypesManager";
 
 const PRIORITY_OPTIONS = [
   { value: "low", label: "Baixa", color: "#4F4F4F" },
@@ -12,7 +14,9 @@ const PRIORITY_OPTIONS = [
 export default function TaskModal({ task, onSave, onClose }) {
   const isEditing = !!task;
   const { allFlags } = useFlags();
+  const { allTypes } = useCardTypes();
 
+  const [cardType, setCardType] = useState(task?.cardType || "task");
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
   const [subtasks, setSubtasks] = useState(
@@ -21,6 +25,7 @@ export default function TaskModal({ task, onSave, onClose }) {
   const [priority, setPriority] = useState(task?.priority || "");
   const [labels, setLabels] = useState(task?.labels || []);
   const [showFlagsManager, setShowFlagsManager] = useState(false);
+  const [showTypesManager, setShowTypesManager] = useState(false);
 
   const handleAddSubtask = () => setSubtasks([...subtasks, ""]);
 
@@ -45,6 +50,7 @@ export default function TaskModal({ task, onSave, onClose }) {
 
     const saved = {
       id: task?.id || `TASK-${Date.now()}`,
+      cardType,
       title: title.trim(),
       description: description.trim(),
       priority,
@@ -74,6 +80,30 @@ export default function TaskModal({ task, onSave, onClose }) {
             <button className={styles.btnClose} onClick={onClose}>
               ✕
             </button>
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>Tipo</label>
+              <button
+                className={styles.btnAddFlag}
+                onClick={() => setShowTypesManager(true)}
+              >
+                + Gerenciar
+              </button>
+            </div>
+            <div className={styles.flagRow}>
+              {allTypes.map((t) => (
+                <button
+                  key={t.id}
+                  className={`${styles.flagBtn} ${cardType === t.id ? styles.flagBtnActive : ""}`}
+                  style={{ "--flag-color": t.color }}
+                  onClick={() => setCardType(t.id)}
+                >
+                  {t.icon} {t.name}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className={styles.field}>
@@ -123,7 +153,6 @@ export default function TaskModal({ task, onSave, onClose }) {
               <button
                 className={styles.btnAddFlag}
                 onClick={() => setShowFlagsManager(true)}
-                title="Gerenciar etiquetas"
               >
                 + Gerenciar
               </button>
@@ -188,6 +217,9 @@ export default function TaskModal({ task, onSave, onClose }) {
 
       {showFlagsManager && (
         <FlagsManager onClose={() => setShowFlagsManager(false)} />
+      )}
+      {showTypesManager && (
+        <CardTypesManager onClose={() => setShowTypesManager(false)} />
       )}
     </>
   );

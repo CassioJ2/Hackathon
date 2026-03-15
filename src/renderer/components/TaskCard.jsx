@@ -1,5 +1,6 @@
 import styles from "./TaskCard.module.css";
 import { useFlags } from "../context/FlagsContext";
+import { useCardTypes } from "../context/CardTypesContext";
 
 const STATUS_CONFIG = {
   pending: { label: "Pendente", color: "#4F4F4F" },
@@ -33,10 +34,14 @@ const TrashIcon = () => (
 
 export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
   const { allFlags } = useFlags();
+  const { allTypes } = useCardTypes();
+  const currentType = allTypes.find((t) => t.id === (task.cardType || "task"));
   const subtasksDone =
     task.subtasks?.filter((s) => s.status === "done").length ?? 0;
   const subtasksTotal = task.subtasks?.length ?? 0;
   const status = STATUS_CONFIG[task.status];
+  const taskLabels = allFlags.filter((f) => task.labels?.includes(f.id));
+  const priority = task.priority ? PRIORITY_COLORS[task.priority] : null;
 
   const handleDelete = (e) => {
     e.stopPropagation();
@@ -48,16 +53,22 @@ export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
     callback();
   };
 
-  const taskLabels = allFlags.filter((f) => task.labels?.includes(f.id));
-  const priority = task.priority ? PRIORITY_COLORS[task.priority] : null;
-
   return (
     <div
       className={styles.card}
       style={{ "--card-color": status.color }}
       onClick={() => onEdit?.(task)}
     >
-      <div className={styles.cardHeader}>
+      {currentType && (
+        <span
+          className={styles.cardTypeBadge}
+          style={{ "--type-color": currentType.color }}
+        >
+          {currentType.icon} {currentType.name}
+        </span>
+      )}
+
+      <div className={styles.titleRow}>
         <p className={styles.title}>{task.title}</p>
         <button
           className={styles.btnDelete}

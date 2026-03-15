@@ -17,6 +17,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
@@ -169,4 +170,51 @@
   border-radius: var(--radius-full);
   border: 1px solid var(--flag-color);
   color: var(--flag-color);
+}
+
+.cardTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--type-color);
+  color: var(--type-color);
+  margin-bottom: var(--space-1);
+  width: fit-content;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cardTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--type-color);
+  color: var(--type-color);
+  margin-bottom: var(--space-1);
+  width: fit-content;
 }
