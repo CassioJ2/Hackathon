@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 function sanitizeSegment(value) {
@@ -30,4 +30,8 @@ export async function readLocalTasksMarkdown(owner, repo) {
 export async function writeLocalTasksMarkdown(owner, repo, markdown) {
     await mkdir(getCacheDir(), { recursive: true })
     await writeFile(getCachePath(owner, repo), markdown, 'utf-8')
+}
+
+export async function clearLocalTasksCache() {
+    await rm(getCacheDir(), { recursive: true, force: true })
 }

@@ -53,10 +53,16 @@
     ],
     "win": {
       "icon": "build/icon.ico",
+      "executableName": "CodeSprint",
       "target": "nsis",
       "signAndEditExecutable": false
     },
     "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": false,
+      "uninstallDisplayName": "CodeSprint",
+      "shortcutName": "CodeSprint",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"
