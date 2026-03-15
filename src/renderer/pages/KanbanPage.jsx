@@ -388,6 +388,14 @@ export default function KanbanPage({
   };
 
   const handleOpenTasksFile = async () => {
+    if (!activeRepo?.localPath) {
+      setToast({
+        message: "Nenhuma pasta local vinculada. Vincule um repo local para abrir o tasks.md.",
+        type: "warning",
+      });
+      return;
+    }
+
     try {
       setError("");
       await window.electron.invoke("repo:open-tasks-file");

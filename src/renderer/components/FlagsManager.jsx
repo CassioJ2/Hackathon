@@ -27,6 +27,7 @@ function FlagEditor({ flag, onSave, onCancel }) {
         placeholder="Nome da flag"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        maxLength={20}
         autoFocus
       />
       <div className={styles.colorRow}>

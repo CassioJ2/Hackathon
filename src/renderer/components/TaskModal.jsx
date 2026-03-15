@@ -229,8 +229,10 @@ export default function TaskModal({
                 placeholder="Ex: Implementar autenticacao"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                maxLength={80}
                 autoFocus
               />
+              <span className={styles.charCount}>{title.length}/80</span>
             </div>
 
             <div className={styles.field}>
@@ -240,8 +242,10 @@ export default function TaskModal({
                 placeholder="Descreva a task em detalhes..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                maxLength={300}
                 rows={3}
               />
+              <span className={styles.charCount}>{description.length}/300</span>
             </div>
 
             <div className={styles.field}>
@@ -249,7 +253,7 @@ export default function TaskModal({
               <input
                 className={styles.input}
                 type="text"
-                placeholder="Buscar por nome ou @login"
+                placeholder="Buscar por nome ou @usuario..."
                 value={assigneeSearch}
                 onChange={(e) => setAssigneeSearch(e.target.value)}
                 disabled={isLoadingCollaborators}
