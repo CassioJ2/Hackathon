@@ -1,38 +1,34 @@
 # Tasks
 
-- [ ] Setup inicial do projeto
-- [ ] Definir primeiras tasks
-  - [ ] Revisar backlog
-  - [ ] Priorizar sprint
-- [ ] teste 2 <!--meta:{"description":"e o teste","priority":"low","labels":["bug","feature","urgente","melhoria","docs"],"cardType":"bug"}-->
-  - [ ] as
-  - [ ] ea
-- [ ] teste <!--meta:{"description":"aa","priority":"low","labels":["bug"]}-->
-- [ ] aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa <!--meta:{"description":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","priority":"high","labels":["flag-1773593984085"],"status":"col-1773593950268","cardType":"type-1773593997780","assignee":"CassioJ2"}-->
-  - [x] a
-  - [x] b
-  - [x] c
-  - [ ] d
-  - [x] e
-  - [ ] f
-  - [ ] g
-  - [ ] h
-  - [ ] i
-  - [ ] j
-  - [x] k
-  - [x] l
-  - [ ] m
-  - [ ] n
-  - [ ] o
-  - [x] p
-  - [ ] q
-  - [ ] r
-  - [ ] s
-  - [ ] t
-  - [x] u
-  - [ ] v
-  - [ ] 1
-  - [ ] 2
-  - [ ] 3
-  - [ ] 4
-  - [ ] 5
+- [ ] Implementar fluxo de IA para gerar backlog <!--meta:{"status":"backlog"}-->
+  - [ ] Definir prompt base para gerar tasks a partir do repositorio
+  - [ ] Permitir revisar e confirmar tasks geradas antes de salvar
+  - [ ] Persistir tasks geradas direto no tasks.md
+- [ ] Melhorar onboarding e empty states <!--meta:{"status":"backlog"}-->
+  - [ ] Explicar claramente o fluxo login -> repo -> tasks.md
+  - [ ] Adicionar CTA para gerar backlog com IA no estado vazio
+  - [ ] Ajustar mensagens para diferenciar repo sem arquivo e repo sem tasks
+- [ ] Refinar selecao e exibicao de responsaveis <!--meta:{"status":"backlog"}-->
+  - [ ] Mostrar avatar no card e no modal de forma consistente
+  - [ ] Permitir limpar responsavel rapidamente na edicao
+  - [ ] Tratar melhor usuarios sem nome publico no GitHub
+- [ ] Evoluir a experiencia do board <!--meta:{"status":"backlog"}-->
+  - [ ] Adicionar filtros por responsavel, prioridade e etiqueta
+  - [ ] Permitir busca textual por titulo e descricao
+  - [ ] Salvar ordenacao e filtros entre sessoes
+- [ ] Melhorar edicao de tasks e subtasks <!--meta:{"status":"backlog"}-->
+  - [ ] Permitir editar subtasks direto no card ou drawer
+  - [ ] Marcar task principal como done quando todas as subtasks forem concluidas
+  - [ ] Validar duplicidade e campos vazios antes de salvar
+- [ ] Fortalecer sincronizacao com GitHub <!--meta:{"status":"backlog"}-->
+  - [ ] Melhorar mensagens de conflito de SHA na UI
+  - [ ] Exibir diff simples quando o tasks.md mudar externamente
+  - [ ] Permitir recarregar estado remoto sem perder contexto visual
+- [ ] Cobrir frontend com testes essenciais <!--meta:{"status":"backlog"}-->
+  - [ ] Testar criacao e edicao de task no modal
+  - [ ] Testar toggle de subtasks e progresso
+  - [ ] Testar troca de repo preservando filtros e scroll
+- [ ] Preparar app para release inicial <!--meta:{"status":"backlog"}-->
+  - [ ] Revisar copy e padronizar textos da UI
+  - [ ] Validar responsividade das telas principais
+  - [ ] Cassinho joaozinho
