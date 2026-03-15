@@ -351,7 +351,7 @@ async function main() {
             readLocalTasksMarkdown: async () => '# Tasks\n\n- [ ] Local\n',
             ensureRepoAiContextFiles: async (localPath, repoInfo) => {
                 ensuredContexts.push({ localPath, repoInfo })
-                return { created: ['AGENTS.md', 'TASKS_WORKFLOW.md'] }
+                return { created: ['playbook/README.md', 'playbook/product.md'] }
             },
             startPoller: () => {},
             stopPoller: () => {},

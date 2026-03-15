@@ -68,7 +68,15 @@ function setRepoDirty(store, activeRepo, dirty) {
     store.set('dirtyRepos', dirtyRepos)
 }
 
-const REMOTE_TASK_FILES = ['AGENTS.md', 'TASKS_WORKFLOW.md']
+const REMOTE_TASK_FILES = [
+    'playbook/README.md',
+    'playbook/product.md',
+    'playbook/architecture.md',
+    'playbook/data-model.md',
+    'playbook/sync.md',
+    'playbook/ui.md',
+    'playbook/playbooks.md'
+]
 
 async function syncManagedFilesToRemote({
     token,
@@ -266,7 +274,7 @@ export function createIpcHandlers({
 
             store.set('tasksSha', file.sha)
             const remoteFileShas = { ...(store.get('remoteFileShas') || {}), 'tasks.md': file.sha }
-            for (const fileName of ['AGENTS.md', 'TASKS_WORKFLOW.md']) {
+            for (const fileName of REMOTE_TASK_FILES) {
                 const remoteContextFile = await getFile(token, owner, repo, fileName, {
                     ref: getTasksBranch(activeRepo)
                 })
@@ -357,7 +365,7 @@ export function createIpcHandlers({
             }
 
             store.set('tasksSha', file.sha)
-            for (const fileName of ['AGENTS.md', 'TASKS_WORKFLOW.md']) {
+            for (const fileName of REMOTE_TASK_FILES) {
                 const remoteContextFile = await getFile(token, owner, repo, fileName, {
                     ref: getTasksBranch(activeRepo)
                 })

@@ -556,7 +556,7 @@ export default function KanbanPage({
                 Branch de tasks: {tasksBranchLabel}
               </span>
               <span className={styles.managedFilesBadge}>
-                Arquivos: tasks.md, AGENTS.md, TASKS_WORKFLOW.md
+                Arquivos: tasks.md + playbook/
               </span>
             </>
           )}
