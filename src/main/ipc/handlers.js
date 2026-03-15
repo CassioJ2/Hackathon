@@ -1,11 +1,12 @@
 import { dialog, shell } from 'electron'
 import { startDeviceFlow, pollForToken } from '../github/auth'
-import { ensureBranch, getRepos, getFile, updateFile, getRepoCollaborators } from '../github/client'
+import { ensureBranch, getRepos, getFile, replaceBranchWithSnapshot, updateFile, getRepoCollaborators } from '../github/client'
 import { parse, stringify } from '../parser/index'
 import store from '../store'
 import { createInitialTasksMarkdown } from '../tasks/template'
 import { readLocalTasksMarkdown, writeLocalTasksMarkdown } from '../tasks/cache'
 import {
+    createPlaybookFiles,
     ensureRepoAiContextFiles,
     getTasksPath,
     readRepoAiContextFiles,
@@ -35,6 +36,7 @@ export function registerIpcHandlers(ipcMain, mainWindow) {
         getRepoCollaborators,
         getFile,
         updateFile,
+        replaceBranchWithSnapshot,
         ensureBranch,
         parse,
         stringify,
@@ -45,6 +47,7 @@ export function registerIpcHandlers(ipcMain, mainWindow) {
         readRepoContextFile,
         writeRepoContextFile,
         readRepoAiContextFiles,
+        createPlaybookFiles,
         validateLocalRepoPath,
         ensureRepoAiContextFiles,
         openTasksFile: async (activeRepo) => {

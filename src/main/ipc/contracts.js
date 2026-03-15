@@ -75,8 +75,24 @@ const REMOTE_TASK_FILES = [
     'playbook/data-model.md',
     'playbook/sync.md',
     'playbook/ui.md',
-    'playbook/playbooks.md'
+    'playbook/playbooks.md',
+    'playbook/ipc.md',
+    'playbook/parser.md',
+    'playbook/mcp.md'
 ]
+
+function buildManagedBranchFiles(tasksMarkdown, playbookFiles) {
+    const files = [{ path: 'tasks.md', content: tasksMarkdown || '# Tasks\n' }]
+
+    for (const fileName of REMOTE_TASK_FILES) {
+        const content = playbookFiles[fileName]
+        if (content) {
+            files.push({ path: fileName, content })
+        }
+    }
+
+    return files
+}
 
 async function syncManagedFilesToRemote({
     token,
@@ -125,6 +141,7 @@ export function createIpcHandlers({
     getRepoCollaborators,
     getFile,
     updateFile,
+    replaceBranchWithSnapshot = async () => ({}),
     ensureBranch = async () => ({ created: false }),
     parse,
     stringify,
@@ -135,6 +152,7 @@ export function createIpcHandlers({
     readRepoContextFile = async () => null,
     writeRepoContextFile = async () => {},
     readRepoAiContextFiles = async () => ({}),
+    createPlaybookFiles = () => ({}),
     pickLocalRepoPath = async () => null,
     openTasksFile = async () => ({ success: false }),
     validateLocalRepoPath = async () => ({ valid: true }),
@@ -222,7 +240,9 @@ export function createIpcHandlers({
             await ensureRepoAiContextFiles(activeRepo.localPath, activeRepo)
             startPoller(mainWindow)
 
-            const localContextFiles = await readRepoAiContextFiles(activeRepo.localPath)
+            const localContextFiles = activeRepo.localPath
+                ? await readRepoAiContextFiles(activeRepo.localPath)
+                : createPlaybookFiles(activeRepo)
 
             const repoMarkdown = await readRepoTasksMarkdown(activeRepo.localPath)
             if (repoMarkdown) {
@@ -240,6 +260,14 @@ export function createIpcHandlers({
                     store.set('tasksSha', null)
                 }
 
+                await replaceBranchWithSnapshot(
+                    token,
+                    owner,
+                    repo,
+                    getTasksBranch(activeRepo),
+                    buildManagedBranchFiles(repoMarkdown, localContextFiles),
+                    'chore: sync tasks branch'
+                )
                 return parse(repoMarkdown)
             }
 
@@ -258,6 +286,14 @@ export function createIpcHandlers({
                     store.set('tasksSha', null)
                 }
 
+                await replaceBranchWithSnapshot(
+                    token,
+                    owner,
+                    repo,
+                    getTasksBranch(activeRepo),
+                    buildManagedBranchFiles(localMarkdown, localContextFiles),
+                    'chore: sync tasks branch'
+                )
                 return parse(localMarkdown)
             }
 
@@ -289,6 +325,14 @@ export function createIpcHandlers({
             await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
             syncLocalWatcherSnapshot(file.content)
             setRepoDirty(store, activeRepo, false)
+            await replaceBranchWithSnapshot(
+                token,
+                owner,
+                repo,
+                getTasksBranch(activeRepo),
+                buildManagedBranchFiles(file.content, localContextFiles),
+                'chore: sync tasks branch'
+            )
             return parse(file.content)
         },
 
@@ -316,6 +360,17 @@ export function createIpcHandlers({
             await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
             syncLocalWatcherSnapshot(markdown)
             setRepoDirty(store, activeRepo, true)
+            const playbookFiles = activeRepo.localPath
+                ? await readRepoAiContextFiles(activeRepo.localPath)
+                : createPlaybookFiles(activeRepo)
+            await replaceBranchWithSnapshot(
+                token,
+                owner,
+                repo,
+                getTasksBranch(activeRepo),
+                buildManagedBranchFiles(markdown, playbookFiles),
+                'chore: initialize tasks branch'
+            )
 
             return {
                 created: true,
@@ -433,6 +488,17 @@ export function createIpcHandlers({
                         }
                     })
                     store.set('remoteFileShas', syncedFileShas)
+                    const playbookFiles = activeRepo.localPath
+                        ? await readRepoAiContextFiles(activeRepo.localPath)
+                        : createPlaybookFiles(activeRepo)
+                    await replaceBranchWithSnapshot(
+                        token,
+                        owner,
+                        repo,
+                        getTasksBranch(activeRepo),
+                        buildManagedBranchFiles(localMarkdown, playbookFiles),
+                        message
+                    )
 
                     const latestFile = await getFile(token, owner, repo, 'tasks.md', {
                         ref: getTasksBranch(activeRepo)

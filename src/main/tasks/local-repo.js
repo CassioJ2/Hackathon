@@ -20,7 +20,10 @@ export const PLAYBOOK_FILES = [
     'playbook/data-model.md',
     'playbook/sync.md',
     'playbook/ui.md',
-    'playbook/playbooks.md'
+    'playbook/playbooks.md',
+    'playbook/ipc.md',
+    'playbook/parser.md',
+    'playbook/mcp.md'
 ]
 
 async function readGitConfig(localPath) {
@@ -177,7 +180,7 @@ async function fileExists(path) {
     }
 }
 
-function createPlaybookFiles({ owner, repo, tasksBranch = 'tasks' }) {
+export function createPlaybookFiles({ owner, repo, tasksBranch = 'tasks' }) {
     const managedFilesList = [
         '`tasks.md`',
         '`playbook/README.md`',
@@ -186,7 +189,10 @@ function createPlaybookFiles({ owner, repo, tasksBranch = 'tasks' }) {
         '`playbook/data-model.md`',
         '`playbook/sync.md`',
         '`playbook/ui.md`',
-        '`playbook/playbooks.md`'
+        '`playbook/playbooks.md`',
+        '`playbook/ipc.md`',
+        '`playbook/parser.md`',
+        '`playbook/mcp.md`'
     ].join('\n- ')
 
     return {
@@ -212,6 +218,9 @@ Explicar com clareza:
 4. \`playbook/sync.md\`
 5. \`playbook/ui.md\`
 6. \`playbook/playbooks.md\`
+7. \`playbook/ipc.md\`
+8. \`playbook/parser.md\`
+9. \`playbook/mcp.md\`
 
 ## Escopo da branch \`${tasksBranch}\`
 
@@ -526,6 +535,112 @@ Se este projeto ganhar um MCP no futuro, ele deve expor pelo menos:
 - lista de colaboradores
 - estado de dirty local
 - conflitos remoto/local
+`,
+        'playbook/ipc.md': `# IPC
+
+## Papel do IPC no produto
+
+O IPC e a ponte entre a UI e o processo principal do Electron.
+
+Ele e responsavel por expor:
+
+- login com GitHub
+- leitura e escrita de tasks
+- sync remoto
+- validacao de repo local
+- estado de sessao
+
+## Canais principais
+
+- \`github:login\`
+- \`github:repos\`
+- \`github:repo-collaborators\`
+- \`repo:pick-local-path\`
+- \`repo:open-tasks-file\`
+- \`repo:validate-local-path\`
+- \`tasks:load\`
+- \`tasks:init\`
+- \`tasks:cache\`
+- \`tasks:pull\`
+- \`tasks:save\`
+- \`session:get\`
+- \`session:clear\`
+
+## Eventos principais
+
+- \`github:auth-success\`
+- \`github:auth-error\`
+- \`tasks:external-update\`
+- \`tasks:remote-conflict\`
+- \`tasks:local-file-update\`
+- \`tasks:local-file-conflict\`
+
+## Regra de implementacao
+
+Toda mudanca de contrato deve manter compatibilidade entre:
+
+- backend Electron
+- preload
+- renderer
+- testes de smoke
+`,
+        'playbook/parser.md': `# Parser
+
+## Papel do parser
+
+O parser converte \`tasks.md\` em estrutura JSON interna e depois reconstrui markdown sem perder consistencia.
+
+## Requisitos
+
+- preservar round-trip
+- preservar metadata inline
+- suportar subtarefas
+- respeitar status de backlog e board
+
+## Campos relevantes
+
+- \`status\`
+- \`description\`
+- \`priority\`
+- \`labels\`
+- \`cardType\`
+- \`assignee\`
+
+## Regra critica
+
+Se o parser mudar, o formato do \`tasks.md\` precisa continuar legivel e estavel para:
+
+- app
+- VS Code
+- agentes de IA
+- sync remoto
+`,
+        'playbook/mcp.md': `# MCP
+
+## Objetivo futuro
+
+Se o CodeSprint ganhar um MCP, ele deve expor o contexto operacional do fluxo de tasks sem obrigar a IA a inferir o estado do produto.
+
+## Recursos minimos
+
+- repo ativo
+- branch \`${tasksBranch}\`
+- leitura de \`tasks.md\`
+- escrita local em \`tasks.md\`
+- \`tasks:pull\`
+- \`tasks:save\`
+- lista de colaboradores
+- estado dirty local
+- conflitos remoto/local
+
+## Beneficio esperado
+
+Um MCP do CodeSprint deve permitir que a IA:
+
+- entenda o backlog atual
+- atualize tasks sem quebrar o formato
+- opere com contexto real do repo
+- respeite o fluxo local-first e os conflitos do produto
 `
     }
 }

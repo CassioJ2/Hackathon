@@ -167,6 +167,60 @@ async function getBranchRef(token, owner, repo, branch) {
     return res.json()
 }
 
+async function createTree(token, owner, repo, entries) {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/git/trees`, {
+        method: 'POST',
+        headers: headers(token),
+        body: JSON.stringify({
+            tree: entries
+        })
+    })
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `createTree failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
+    return res.json()
+}
+
+async function createCommit(token, owner, repo, message, treeSha, parentSha) {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/git/commits`, {
+        method: 'POST',
+        headers: headers(token),
+        body: JSON.stringify({
+            message,
+            tree: treeSha,
+            parents: parentSha ? [parentSha] : []
+        })
+    })
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `createCommit failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
+    return res.json()
+}
+
+async function updateBranchRef(token, owner, repo, branch, commitSha) {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+        method: 'PATCH',
+        headers: headers(token),
+        body: JSON.stringify({
+            sha: commitSha,
+            force: true
+        })
+    })
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `updateBranchRef failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
+    return res.json()
+}
+
 export async function ensureBranch(token, owner, repo, branch) {
     if (!branch) {
         return null
@@ -204,6 +258,34 @@ export async function ensureBranch(token, owner, repo, branch) {
     }
 
     return { created: true, branch, baseBranch: defaultBranch }
+}
+
+export async function replaceBranchWithSnapshot(token, owner, repo, branch, files, message = 'chore: sync tasks branch') {
+    const branchRef = await getBranchRef(token, owner, repo, branch)
+
+    if (!branchRef?.object?.sha) {
+        throw new Error(`Could not resolve branch ${branch} for ${owner}/${repo}`)
+    }
+
+    const tree = await createTree(
+        token,
+        owner,
+        repo,
+        files.map((file) => ({
+            path: file.path,
+            mode: '100644',
+            type: 'blob',
+            content: file.content
+        }))
+    )
+
+    const commit = await createCommit(token, owner, repo, message, tree.sha, branchRef.object.sha)
+    await updateBranchRef(token, owner, repo, branch, commit.sha)
+
+    return {
+        commitSha: commit.sha,
+        treeSha: tree.sha
+    }
 }
 
 /**

@@ -20,6 +20,9 @@ Explicar com clareza:
 4. `playbook/sync.md`
 5. `playbook/ui.md`
 6. `playbook/playbooks.md`
+7. `playbook/ipc.md`
+8. `playbook/parser.md`
+9. `playbook/mcp.md`
 
 ## Escopo da branch `tasks`
 
@@ -33,5 +36,8 @@ A branch `tasks` deve conter apenas:
 - `playbook/sync.md`
 - `playbook/ui.md`
 - `playbook/playbooks.md`
+- `playbook/ipc.md`
+- `playbook/parser.md`
+- `playbook/mcp.md`
 
 Nenhum arquivo de codigo deve ser tratado como parte da branch `tasks`.
