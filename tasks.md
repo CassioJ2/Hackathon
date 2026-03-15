@@ -17,7 +17,7 @@
   - [ ] Mostrar a solucao local-first
   - [ ] Mostrar branch tasks e sync
   - [ ] Encerrar com os diferenciais
-- [/] Revisar materiais visuais da apresentacao <!--meta:{"description":"Fechar os elementos visuais da entrega para banca e demo.","priority":"medium","labels":["design","apresentacao","branding"],"assignee":"marialuisasanches"}-->
+- [ ] Revisar materiais visuais da apresentacao <!--meta:{"description":"Fechar os elementos visuais da entrega para banca e demo.","priority":"medium","labels":["design","apresentacao","branding"],"status":"backlog","assignee":"marialuisasanches"}-->
   - [x] Escolher screenshots finais
   - [ ] Revisar consistencia do nome CodeSprint
   - [ ] Ajustar detalhes visuais finais
