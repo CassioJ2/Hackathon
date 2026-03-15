@@ -112,3 +112,61 @@
 .card:hover .statusDot {
   opacity: 1;
 }
+
+.description {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.subtaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.subtaskItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.subtaskDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-graphite-soft);
+  flex-shrink: 0;
+}
+
+.subtaskDotDone {
+  background: var(--color-teal);
+}
+
+.subtaskTitle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.subtaskTitleDone {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.flag {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--flag-color);
+  color: var(--flag-color);
+}

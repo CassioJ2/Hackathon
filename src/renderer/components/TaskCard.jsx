@@ -24,7 +24,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-export default function TaskCard({ task, onStatusChange, onDelete }) {
+export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
   const subtasksDone =
     task.subtasks?.filter((s) => s.status === "done").length ?? 0;
   const subtasksTotal = task.subtasks?.length ?? 0;
@@ -35,19 +35,82 @@ export default function TaskCard({ task, onStatusChange, onDelete }) {
     onDelete?.(task.id);
   };
 
+  const handleActionClick = (e, callback) => {
+    e.stopPropagation();
+    callback();
+  };
+
   return (
-    <div className={styles.card} style={{ "--card-color": status.color }}>
+    <div
+      className={styles.card}
+      style={{ "--card-color": status.color }}
+      onClick={() => onEdit?.(task)}
+    >
       <div className={styles.cardHeader}>
         <p className={styles.title}>{task.title}</p>
         <button
           className={styles.btnDelete}
           onClick={handleDelete}
-          onPointerDown={(e) => e.stopPropagation()}
           title="Deletar task"
         >
           <TrashIcon />
         </button>
       </div>
+
+      {(task.priority || task.labels?.length > 0) && (
+        <div className={styles.flags}>
+          {task.priority && (
+            <span
+              className={styles.flag}
+              style={{
+                "--flag-color":
+                  task.priority === "high"
+                    ? "#E85D24"
+                    : task.priority === "medium"
+                      ? "#00A676"
+                      : "#4F4F4F",
+              }}
+            >
+              {task.priority === "high"
+                ? "Alta"
+                : task.priority === "medium"
+                  ? "Média"
+                  : "Baixa"}
+            </span>
+          )}
+          {task.labels?.map((l) => {
+            const COLORS = {
+              bug: "#C0392B",
+              feature: "#005F73",
+              urgente: "#E85D24",
+              melhoria: "#00A676",
+              docs: "#758956",
+              teste: "#2B2D42",
+            };
+            const NAMES = {
+              bug: "Bug",
+              feature: "Feature",
+              urgente: "Urgente",
+              melhoria: "Melhoria",
+              docs: "Docs",
+              teste: "Teste",
+            };
+            return (
+              <span
+                key={l}
+                className={styles.flag}
+                style={{ "--flag-color": COLORS[l] }}
+              >
+                {NAMES[l]}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {task.description && (
+        <p className={styles.description}>{task.description}</p>
+      )}
 
       {subtasksTotal > 0 && (
         <div className={styles.subtasks}>
@@ -60,6 +123,20 @@ export default function TaskCard({ task, onStatusChange, onDelete }) {
           <span className={styles.subtaskCount}>
             {subtasksDone}/{subtasksTotal} subtasks
           </span>
+          <div className={styles.subtaskList}>
+            {task.subtasks.map((sub) => (
+              <div key={sub.id} className={styles.subtaskItem}>
+                <span
+                  className={`${styles.subtaskDot} ${sub.status === "done" ? styles.subtaskDotDone : ""}`}
+                />
+                <span
+                  className={`${styles.subtaskTitle} ${sub.status === "done" ? styles.subtaskTitleDone : ""}`}
+                >
+                  {sub.title}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -67,8 +144,9 @@ export default function TaskCard({ task, onStatusChange, onDelete }) {
         {task.status !== "pending" && (
           <button
             className={styles.btnAction}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => onStatusChange(task.id, "pending")}
+            onClick={(e) =>
+              handleActionClick(e, () => onStatusChange(task.id, "pending"))
+            }
           >
             Pendente
           </button>
@@ -76,8 +154,9 @@ export default function TaskCard({ task, onStatusChange, onDelete }) {
         {task.status !== "in_progress" && (
           <button
             className={styles.btnAction}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => onStatusChange(task.id, "in_progress")}
+            onClick={(e) =>
+              handleActionClick(e, () => onStatusChange(task.id, "in_progress"))
+            }
           >
             Em andamento
           </button>
@@ -85,8 +164,9 @@ export default function TaskCard({ task, onStatusChange, onDelete }) {
         {task.status !== "done" && (
           <button
             className={`${styles.btnAction} ${styles.btnDone}`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => onStatusChange(task.id, "done")}
+            onClick={(e) =>
+              handleActionClick(e, () => onStatusChange(task.id, "done"))
+            }
           >
             Concluído
           </button>

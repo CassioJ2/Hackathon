@@ -157,3 +157,32 @@
 .btnNewTask:hover {
   background: var(--color-teal);
 }
+.btnSync {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-graphite-mid);
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: all var(--duration-fast) var(--ease-default);
+  cursor: pointer;
+}
+
+.btnSync:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btnSyncPending {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  font-weight: var(--font-medium);
+}
+
+.btnSyncPending:hover {
+  background: var(--color-teal-dark);
+  color: var(--color-white);
+}

@@ -2,7 +2,12 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TaskCard from "./TaskCard";
 
-export default function SortableTaskCard({ task, onStatusChange, onDelete }) {
+export default function SortableTaskCard({
+  task,
+  onStatusChange,
+  onDelete,
+  onEdit,
+}) {
   const {
     attributes,
     listeners,
@@ -19,14 +24,13 @@ export default function SortableTaskCard({ task, onStatusChange, onDelete }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <div style={{ cursor: isDragging ? "grabbing" : "grab" }} {...listeners}>
-        <TaskCard
-          task={task}
-          onStatusChange={onStatusChange}
-          onDelete={onDelete}
-        />
-      </div>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TaskCard
+        task={task}
+        onStatusChange={onStatusChange}
+        onDelete={onDelete}
+        onEdit={onEdit}
+      />
     </div>
   );
 }

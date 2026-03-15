@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -22,33 +22,31 @@ const COLUMNS = [
   { key: "done", label: "Concluído", color: "#94D2BD" },
 ];
 
-export default function KanbanPage({
-  initialTasks,
-  activeRepo,
-  onTasksChange,
-  onLogout,
-}) {
-  const [tasks, setTasks] = useState(initialTasks || []);
-  const [step, setStep] = useState("loading");
+export default function KanbanPage({ activeRepo, onLogout }) {
+  const [tasks, setTasks] = useState([]);
+  const [step, setStep] = useState("loading"); // loading | ready | syncing | error
   const [error, setError] = useState("");
   const [activeTask, setActiveTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [toast, setToast] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const tasksRef = useRef(tasks);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   useEffect(() => {
-    setTasks(initialTasks || []);
-    setStep("ready");
-  }, [initialTasks]);
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   useEffect(() => {
     const cleanup = window.electron.on(
       "tasks:external-update",
       (updatedTasks) => {
         setTasks(updatedTasks);
+        setHasChanges(false);
         setToast({
           message: "Tasks atualizadas pelo GitHub!",
           type: "success",
@@ -71,6 +69,30 @@ export default function KanbanPage({
     return () => cleanup?.();
   }, []);
 
+  // atualiza tasks localmente sem commitar
+  const updateTasksLocally = (updatedTasks) => {
+    setTasks(updatedTasks);
+    setHasChanges(true);
+  };
+
+  // commit no GitHub — só quando clicar em Sync
+  const handleSync = async () => {
+    try {
+      setStep("syncing");
+      setError("");
+      await window.electron.invoke("tasks:save", {
+        tasks: tasksRef.current,
+        commitMessage: "chore: update tasks",
+      });
+      setStep("ready");
+      setHasChanges(false);
+      setToast({ message: "Sincronizado com GitHub!", type: "success" });
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
+  };
+
   const findColumn = (taskId) =>
     COLUMNS.find((col) =>
       tasks.find((t) => t.id === taskId && t.status === col.key),
@@ -86,59 +108,48 @@ export default function KanbanPage({
     const overCol =
       COLUMNS.find((c) => c.key === over.id)?.key || findColumn(over.id);
     if (!activeCol || !overCol || activeCol === overCol) return;
-    setTasks((prev) =>
-      prev.map((t) => (t.id === active.id ? { ...t, status: overCol } : t)),
+    updateTasksLocally(
+      tasks.map((t) => (t.id === active.id ? { ...t, status: overCol } : t)),
     );
   };
 
-  const handleDragEnd = async ({ active, over }) => {
+  const handleDragEnd = ({ active, over }) => {
     setActiveTask(null);
     if (!over) return;
     const updated = [...tasks];
     const activeIndex = updated.findIndex((t) => t.id === active.id);
     const overIndex = updated.findIndex((t) => t.id === over.id);
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-      const reordered = arrayMove(updated, activeIndex, overIndex);
-      setTasks(reordered);
-      await saveTasks(reordered);
-    } else {
-      await saveTasks(updated);
+      updateTasksLocally(arrayMove(updated, activeIndex, overIndex));
     }
   };
 
-  const saveTasks = async (updatedTasks) => {
-    try {
-      setStep("saving");
-      setError("");
-      await window.electron.invoke("tasks:save", {
-        tasks: updatedTasks,
-        commitMessage: "chore: update tasks",
-      });
-      setStep("ready");
-    } catch (err) {
-      setError(err.message);
-      setStep("error");
-    }
-  };
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    const updated = tasks.map((t) =>
-      t.id === taskId ? { ...t, status: newStatus } : t,
+  const handleStatusChange = (taskId, newStatus) => {
+    updateTasksLocally(
+      tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
     );
-    setTasks(updated);
-    await saveTasks(updated);
   };
 
-  // NOVO: deletar task
-  const handleDeleteTask = async (taskId) => {
-    const updated = tasks.filter((t) => t.id !== taskId);
-    setTasks(updated);
-    await saveTasks(updated);
+  const handleDeleteTask = (taskId) => {
+    updateTasksLocally(tasks.filter((t) => t.id !== taskId));
+  };
+
+  const handleEditTask = (task) => setEditingTask(task);
+
+  const handleSaveEdit = (updatedTask) => {
+    updateTasksLocally(
+      tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+    );
+    setEditingTask(null);
+  };
+
+  const handleCreateTask = (newTask) => {
+    updateTasksLocally([...tasks, newTask]);
   };
 
   const handleInitializeTasks = async () => {
     try {
-      setStep("saving");
+      setStep("syncing");
       setError("");
       const result = await window.electron.invoke("tasks:init", {});
       setTasks(result.tasks);
@@ -147,12 +158,6 @@ export default function KanbanPage({
       setError(err.message);
       setStep("error");
     }
-  };
-
-  const handleCreateTask = async (newTask) => {
-    const updated = [...tasks, newTask];
-    setTasks(updated);
-    await saveTasks(updated);
   };
 
   const handleLogout = async () => {
@@ -185,18 +190,24 @@ export default function KanbanPage({
         </div>
 
         <div className={styles.headerRight}>
-          {step === "saving" && (
-            <div className={styles.savingWrap}>
-              <LoadingSpinner size="sm" />
-              <span className={styles.savingText}>Sincronizando...</span>
-            </div>
-          )}
-          {step === "ready" && (
-            <span className={styles.syncedText}>Sincronizado</span>
-          )}
           {step === "error" && (
             <span className={styles.errorText}>{error}</span>
           )}
+          <button
+            className={`${styles.btnSync} ${hasChanges ? styles.btnSyncPending : ""}`}
+            onClick={handleSync}
+            disabled={step === "syncing" || !hasChanges}
+          >
+            {step === "syncing" ? (
+              <>
+                <LoadingSpinner size="sm" /> Sincronizando...
+              </>
+            ) : hasChanges ? (
+              "↑ Sync"
+            ) : (
+              "Sincronizado"
+            )}
+          </button>
           <button className={styles.btnLogout} onClick={handleLogout}>
             Sair
           </button>
@@ -218,9 +229,9 @@ export default function KanbanPage({
           <button
             className={styles.btnPrimary}
             onClick={handleInitializeTasks}
-            disabled={step === "saving"}
+            disabled={step === "syncing"}
           >
-            {step === "saving"
+            {step === "syncing"
               ? "Criando backlog..."
               : "Criar tasks.md inicial"}
           </button>
@@ -244,10 +255,10 @@ export default function KanbanPage({
                 tasks={tasksByStatus(col.key)}
                 onStatusChange={handleStatusChange}
                 onDeleteTask={handleDeleteTask}
+                onEditTask={handleEditTask}
               />
             ))}
           </div>
-
           <DragOverlay>
             {activeTask && (
               <TaskCard task={activeTask} onStatusChange={() => {}} />
@@ -260,6 +271,13 @@ export default function KanbanPage({
         <TaskModal
           onSave={handleCreateTask}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingTask(null)}
         />
       )}
       {toast && (
