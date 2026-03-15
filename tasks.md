@@ -25,5 +25,4 @@
   - [ ] Mostrar a solucao local-first
   - [ ] Mostrar branch tasks e sync
   - [ ] Encerrar com os diferenciais
-- [ ] teste <!--meta:{"status":"backlog","cardType":"spike"}-->
-- [ ] sadasdas <!--meta:{"description":"dasdasdas","assignee":"CassioJ2"}-->
+- [ ] teste <!--meta:{"cardType":"spike"}-->
