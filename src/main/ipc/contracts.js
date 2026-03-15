@@ -141,7 +141,6 @@ export function createIpcHandlers({
     getRepoCollaborators,
     getFile,
     updateFile,
-    replaceBranchWithSnapshot = async () => ({}),
     ensureBranch = async () => ({ created: false }),
     parse,
     stringify,
@@ -260,14 +259,6 @@ export function createIpcHandlers({
                     store.set('tasksSha', null)
                 }
 
-                await replaceBranchWithSnapshot(
-                    token,
-                    owner,
-                    repo,
-                    getTasksBranch(activeRepo),
-                    buildManagedBranchFiles(repoMarkdown, localContextFiles),
-                    'chore: sync tasks branch'
-                )
                 return parse(repoMarkdown)
             }
 
@@ -286,14 +277,6 @@ export function createIpcHandlers({
                     store.set('tasksSha', null)
                 }
 
-                await replaceBranchWithSnapshot(
-                    token,
-                    owner,
-                    repo,
-                    getTasksBranch(activeRepo),
-                    buildManagedBranchFiles(localMarkdown, localContextFiles),
-                    'chore: sync tasks branch'
-                )
                 return parse(localMarkdown)
             }
 
@@ -325,14 +308,6 @@ export function createIpcHandlers({
             await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
             syncLocalWatcherSnapshot(file.content)
             setRepoDirty(store, activeRepo, false)
-            await replaceBranchWithSnapshot(
-                token,
-                owner,
-                repo,
-                getTasksBranch(activeRepo),
-                buildManagedBranchFiles(file.content, localContextFiles),
-                'chore: sync tasks branch'
-            )
             return parse(file.content)
         },
 
@@ -360,18 +335,6 @@ export function createIpcHandlers({
             await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
             syncLocalWatcherSnapshot(markdown)
             setRepoDirty(store, activeRepo, true)
-            const playbookFiles = activeRepo.localPath
-                ? await readRepoAiContextFiles(activeRepo.localPath)
-                : createPlaybookFiles(activeRepo)
-            await replaceBranchWithSnapshot(
-                token,
-                owner,
-                repo,
-                getTasksBranch(activeRepo),
-                buildManagedBranchFiles(markdown, playbookFiles),
-                'chore: initialize tasks branch'
-            )
-
             return {
                 created: true,
                 sha: store.get('tasksSha'),
@@ -488,18 +451,6 @@ export function createIpcHandlers({
                         }
                     })
                     store.set('remoteFileShas', syncedFileShas)
-                    const playbookFiles = activeRepo.localPath
-                        ? await readRepoAiContextFiles(activeRepo.localPath)
-                        : createPlaybookFiles(activeRepo)
-                    await replaceBranchWithSnapshot(
-                        token,
-                        owner,
-                        repo,
-                        getTasksBranch(activeRepo),
-                        buildManagedBranchFiles(localMarkdown, playbookFiles),
-                        message
-                    )
-
                     const latestFile = await getFile(token, owner, repo, 'tasks.md', {
                         ref: getTasksBranch(activeRepo)
                     })

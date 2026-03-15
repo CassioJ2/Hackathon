@@ -377,6 +377,44 @@ async function main() {
         })
     })
 
+    await run('tasks:load nao reescreve a branch remota ao carregar estado local', async () => {
+        const { mainWindow } = createMainWindowRecorder()
+        const store = createMemoryStore({ token: 'token-123' })
+        let remoteSnapshotCalls = 0
+
+        const handlers = createIpcHandlers({
+            env: { GITHUB_CLIENT_ID: 'client-id' },
+            mainWindow,
+            store,
+            startDeviceFlow: async () => ({}),
+            pollForToken: async () => 'token',
+            getRepos: async () => [],
+            getRepoCollaborators: async () => [],
+            getFile: async () => ({ sha: 'sha-remoto', content: '# Tasks\n\n- [ ] Remoto\n' }),
+            updateFile: async () => ({ sha: 'sha-1' }),
+            replaceBranchWithSnapshot: async () => {
+                remoteSnapshotCalls += 1
+                return {}
+            },
+            parse: () => [{ id: 'TASK-001', title: 'Repo local', status: 'pending', subtasks: [] }],
+            stringify: () => '# Tasks\n',
+            readRepoTasksMarkdown: async () => '# Tasks\n\n- [ ] Repo local\n',
+            ensureRepoAiContextFiles: async () => ({ created: [] }),
+            startPoller: () => {},
+            stopPoller: () => {},
+            createInitialTasksMarkdown: () => '# Tasks\n'
+        })
+
+        const result = await handlers['tasks:load'](null, {
+            owner: 'cassio',
+            repo: 'ai-project',
+            localPath: 'D:\\Projeto\\AI-Project'
+        })
+
+        assert.equal(result[0].title, 'Repo local')
+        assert.equal(remoteSnapshotCalls, 0)
+    })
+
     await run('tasks:init com force recria tasks.md local mesmo quando ja existe', async () => {
         const { mainWindow } = createMainWindowRecorder()
         const store = createMemoryStore({
@@ -417,6 +455,43 @@ async function main() {
         assert.equal(writes[0][0], 'cassio')
         assert.equal(writes[0][1], 'ai-project')
         assert.equal(repoWrites[0][0], 'D:\\Projeto\\AI-Project')
+    })
+
+    await run('tasks:init permanece local-first e nao sobe snapshot remoto', async () => {
+        const { mainWindow } = createMainWindowRecorder()
+        const store = createMemoryStore({
+            token: 'token-123',
+            activeRepo: { owner: 'cassio', repo: 'ai-project', localPath: 'D:\\Projeto\\AI-Project' }
+        })
+        let remoteSnapshotCalls = 0
+
+        const handlers = createIpcHandlers({
+            env: { GITHUB_CLIENT_ID: 'client-id' },
+            mainWindow,
+            store,
+            startDeviceFlow: async () => ({}),
+            pollForToken: async () => 'token',
+            getRepos: async () => [],
+            getRepoCollaborators: async () => [],
+            getFile: async () => null,
+            updateFile: async () => ({ sha: 'sha-created' }),
+            replaceBranchWithSnapshot: async () => {
+                remoteSnapshotCalls += 1
+                return {}
+            },
+            parse: () => [],
+            stringify: () => '# Tasks\n',
+            writeLocalTasksMarkdown: async () => {},
+            writeRepoTasksMarkdown: async () => {},
+            startPoller: () => {},
+            stopPoller: () => {},
+            createInitialTasksMarkdown: () => '# Tasks\n\n- [ ] Setup inicial do projeto\n'
+        })
+
+        const result = await handlers['tasks:init'](null, { force: true })
+
+        assert.equal(result.created, true)
+        assert.equal(remoteSnapshotCalls, 0)
     })
 
     await run('tasks:cache salva o estado local do repo ativo no cache e no repo real', async () => {
@@ -717,6 +792,44 @@ async function main() {
         assert.equal(writes[1][2], '# Tasks\n\n- [x] Remota final\n')
         assert.equal(repoWrites.length, 2)
         assert.equal(repoWrites[1][1], '# Tasks\n\n- [x] Remota final\n')
+    })
+
+    await run('tasks:save nao reescreve a branch inteira apos atualizar tasks.md', async () => {
+        const { mainWindow } = createMainWindowRecorder()
+        const store = createMemoryStore({
+            token: 'token-123',
+            activeRepo: { owner: 'cassio', repo: 'ai-project', localPath: 'D:\\Projeto\\AI-Project' },
+            tasksSha: 'sha-inicial'
+        })
+        let remoteSnapshotCalls = 0
+
+        const handlers = createIpcHandlers({
+            env: { GITHUB_CLIENT_ID: 'client-id' },
+            mainWindow,
+            store,
+            startDeviceFlow: async () => ({}),
+            pollForToken: async () => 'token',
+            getRepos: async () => [],
+            getRepoCollaborators: async () => [],
+            getFile: async () => ({ sha: 'sha-remoto-final', content: '# Tasks\n\n- [x] Remota final\n' }),
+            updateFile: async () => ({ sha: 'sha-atualizada' }),
+            replaceBranchWithSnapshot: async () => {
+                remoteSnapshotCalls += 1
+                return {}
+            },
+            parse: () => [{ id: 'TASK-001', title: 'Remota final', status: 'done', subtasks: [] }],
+            stringify: () => '# Tasks\n\n- [ ] Local\n',
+            writeLocalTasksMarkdown: async () => {},
+            writeRepoTasksMarkdown: async () => {},
+            startPoller: () => {},
+            stopPoller: () => {},
+            createInitialTasksMarkdown: () => '# Tasks\n'
+        })
+
+        const result = await handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' })
+
+        assert.equal(result.sha, 'sha-remoto-final')
+        assert.equal(remoteSnapshotCalls, 0)
     })
 
     await run('github:repo-collaborators usa o repo ativo da sessao', async () => {
