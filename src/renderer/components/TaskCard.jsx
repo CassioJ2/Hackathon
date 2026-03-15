@@ -1,12 +1,19 @@
 import styles from "./TaskCard.module.css";
 
+const STATUS_CONFIG = {
+  pending: { label: "Pendente", color: "#4F4F4F" },
+  in_progress: { label: "Em andamento", color: "#00A676" },
+  done: { label: "Concluído", color: "#94D2BD" },
+};
+
 export default function TaskCard({ task, onStatusChange }) {
   const subtasksDone =
     task.subtasks?.filter((s) => s.status === "done").length ?? 0;
   const subtasksTotal = task.subtasks?.length ?? 0;
+  const status = STATUS_CONFIG[task.status];
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={{ "--card-color": status.color }}>
       <p className={styles.title}>{task.title}</p>
 
       {subtasksTotal > 0 && (

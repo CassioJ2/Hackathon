@@ -44,10 +44,6 @@ export default function KanbanPage({
   }, [initialTasks]);
 
   useEffect(() => {
-    onTasksChange?.(tasks);
-  }, [tasks, onTasksChange]);
-
-  useEffect(() => {
     const cleanup = window.electron.on(
       "tasks:external-update",
       (updatedTasks) => {
