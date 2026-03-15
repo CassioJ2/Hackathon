@@ -689,7 +689,7 @@ async function main() {
         assert.equal(pollerStopped, true)
     })
 
-    await run('tasks:save recarrega estado remoto quando encontra conflito de SHA', async () => {
+    await run('tasks:save retorna conflito estruturado quando encontra conflito de SHA', async () => {
         const { mainWindow, sent } = createMainWindowRecorder()
         const store = createMemoryStore({
             token: 'token-123',
@@ -726,17 +726,60 @@ async function main() {
             createInitialTasksMarkdown: () => '# Tasks\n'
         })
 
-        await assert.rejects(
-            () => handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' }),
-            /changed on GitHub before saving/
-        )
+        const result = await handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' })
 
         assert.equal(store.get('tasksSha'), 'sha-remoto')
-        assert.equal(sent.length, 1)
-        assert.equal(sent[0].channel, 'tasks:remote-conflict')
-        assert.equal(sent[0].args[0][0].title, 'Task remota')
+        assert.equal(result.mode, 'conflict')
+        assert.equal(result.tasks[0].title, 'Task remota')
+        assert.equal(sent.length, 0)
         assert.equal(writes.length, 1)
         assert.equal(repoWrites.length, 1)
+    })
+
+    await run('tasks:save trata SHA conflitante com mesmo conteudo como sucesso', async () => {
+        const { mainWindow } = createMainWindowRecorder()
+        const store = createMemoryStore({
+            token: 'token-123',
+            activeRepo: { owner: 'cassio', repo: 'ai-project', localPath: 'D:\\Projeto\\AI-Project' },
+            tasksSha: 'sha-antigo'
+        })
+        const writes = []
+        const repoWrites = []
+
+        const handlers = createIpcHandlers({
+            env: { GITHUB_CLIENT_ID: 'client-id' },
+            mainWindow,
+            store,
+            startDeviceFlow: async () => ({}),
+            pollForToken: async () => 'token',
+            getRepos: async () => [],
+            getRepoCollaborators: async () => [],
+            getFile: async () => ({ sha: 'sha-remoto', content: '# Tasks\n\n- [ ] Task local\n' }),
+            updateFile: async () => {
+                const error = new Error('sha conflict')
+                error.status = 409
+                throw error
+            },
+            parse: () => [{ id: 'TASK-001', title: 'Task local', status: 'pending', subtasks: [] }],
+            stringify: () => '# Tasks\n\n- [ ] Task local\n',
+            writeLocalTasksMarkdown: async (...args) => {
+                writes.push(args)
+            },
+            writeRepoTasksMarkdown: async (...args) => {
+                repoWrites.push(args)
+            },
+            startPoller: () => {},
+            stopPoller: () => {},
+            createInitialTasksMarkdown: () => '# Tasks\n'
+        })
+
+        const result = await handlers['tasks:save'](null, { tasks: [], commitMessage: 'test' })
+
+        assert.equal(result.success, true)
+        assert.equal(result.sha, 'sha-remoto')
+        assert.equal(store.get('dirtyRepos')['cassio/ai-project'], false)
+        assert.equal(writes.length, 2)
+        assert.equal(repoWrites.length, 2)
     })
 
     await run('tasks:save serializa salvamentos consecutivos e reutiliza o SHA atualizado', async () => {

@@ -238,6 +238,15 @@ export default function KanbanPage({
         tasks: tasksRef.current,
         commitMessage: "chore: update tasks",
       });
+      if (result?.mode === "conflict") {
+        setIncomingConflict({ tasks: result.tasks || [], source: "github" });
+        setStep("ready");
+        setToast({
+          message: "Mudancas remotas encontradas durante o sync. Revise antes de aplicar.",
+          type: "warning",
+        });
+        return;
+      }
       if (result?.tasks) {
         setTasks(result.tasks);
       }

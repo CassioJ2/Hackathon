@@ -487,20 +487,35 @@ export function createIpcHandlers({
                             ...(store.get('remoteFileShas') || {}),
                             'tasks.md': latestFile.sha
                         })
-                        if (getRepoDirty(store, activeRepo)) {
-                            mainWindow.webContents.send('tasks:remote-conflict', parse(latestFile.content))
-                        } else {
+                        const latestTasks = parse(latestFile.content)
+
+                        if (latestFile.content === localMarkdown) {
                             await writeLocalTasksMarkdown(owner, repo, latestFile.content)
                             await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
                             syncLocalWatcherSnapshot(latestFile.content)
-                            mainWindow.webContents.send('tasks:external-update', parse(latestFile.content))
+                            setRepoDirty(store, activeRepo, false)
+                            return {
+                                success: true,
+                                sha: latestFile.sha,
+                                tasks: latestTasks
+                            }
                         }
-                    } else {
-                        store.set('tasksSha', null)
-                        mainWindow.webContents.send('tasks:external-update', [])
+
+                        return {
+                            success: false,
+                            mode: 'conflict',
+                            sha: latestFile.sha,
+                            tasks: latestTasks
+                        }
                     }
 
-                    throw new Error('tasks.md changed on GitHub before saving. Latest version was reloaded.')
+                    store.set('tasksSha', null)
+                    return {
+                        success: false,
+                        mode: 'conflict',
+                        sha: null,
+                        tasks: []
+                    }
                 }
             })
         },
