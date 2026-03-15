@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -10,56 +10,92 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import KanbanColumn from "../components/KanbanColumn";
 import TaskCard from "../components/TaskCard";
+import TaskModal from "../components/TaskModal";
 import LoadingSpinner from "../components/LoadingSpinner";
 import styles from "./KanbanPage.module.css";
+import Toast from "../components/Toast";
+import logo from "../logo.svg";
+import { useColumns } from "../context/ColumnsContext";
+import ColumnsManager from "../components/ColumnsManager";
 
-const COLUMNS = [
-  { key: "pending", label: "Pendente", color: "#4F4F4F" },
-  { key: "in_progress", label: "Em andamento", color: "#00A676" },
-  { key: "done", label: "Concluído", color: "#94D2BD" },
-];
-
-export default function KanbanPage({
-  initialTasks,
-  activeRepo,
-  onTasksChange,
-  onLogout,
-}) {
-  const [tasks, setTasks] = useState(initialTasks || []);
-  const [step, setStep] = useState("loading");
+export default function KanbanPage({ activeRepo, onLogout }) {
+  const [tasks, setTasks] = useState([]);
+  const [step, setStep] = useState("loading"); // loading | ready | syncing | error
   const [error, setError] = useState("");
   const [activeTask, setActiveTask] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const tasksRef = useRef(tasks);
+
+  const { columns } = useColumns();
+  const [showColumnsManager, setShowColumnsManager] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   useEffect(() => {
-    setTasks(initialTasks || []);
-    setStep("ready");
-  }, [initialTasks]);
-
-  useEffect(() => {
-    onTasksChange?.(tasks);
-  }, [tasks, onTasksChange]);
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   useEffect(() => {
     const cleanup = window.electron.on(
       "tasks:external-update",
       (updatedTasks) => {
         setTasks(updatedTasks);
-        setStep("ready");
-        setError("");
+        setHasChanges(false);
+        setToast({
+          message: "Tasks atualizadas pelo GitHub!",
+          type: "success",
+        });
       },
     );
+
+    window.electron
+      .invoke("tasks:init")
+      .then((result) => {
+        if (!result) return;
+        setTasks(result.tasks);
+        setStep("ready");
+      })
+      .catch((err) => {
+        setError(err.message);
+        setStep("error");
+      });
 
     return () => cleanup?.();
   }, []);
 
+  // atualiza tasks localmente sem commitar
+  const updateTasksLocally = (updatedTasks) => {
+    setTasks(updatedTasks);
+    setHasChanges(true);
+  };
+
+  // commit no GitHub â€” sÃ³ quando clicar em Sync
+  const handleSync = async () => {
+    try {
+      setStep("syncing");
+      setError("");
+      await window.electron.invoke("tasks:save", {
+        tasks: tasksRef.current,
+        commitMessage: "chore: update tasks",
+      });
+      setStep("ready");
+      setHasChanges(false);
+      setToast({ message: "Sincronizado com GitHub!", type: "success" });
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
+  };
+
   const findColumn = (taskId) =>
-    COLUMNS.find((col) =>
-      tasks.find((t) => t.id === taskId && t.status === col.key),
-    )?.key;
+    columns.find((col) =>
+      tasks.find((t) => t.id === taskId && t.status === col.id),
+    )?.id;
 
   const handleDragStart = ({ active }) => {
     setActiveTask(tasks.find((t) => t.id === active.id) || null);
@@ -67,61 +103,52 @@ export default function KanbanPage({
 
   const handleDragOver = ({ active, over }) => {
     if (!over) return;
-
     const activeCol = findColumn(active.id);
     const overCol =
-      COLUMNS.find((c) => c.key === over.id)?.key || findColumn(over.id);
-
+      columns.find((c) => c.id === over.id)?.id || findColumn(over.id);
     if (!activeCol || !overCol || activeCol === overCol) return;
-
-    setTasks((prev) =>
-      prev.map((t) => (t.id === active.id ? { ...t, status: overCol } : t)),
+    updateTasksLocally(
+      tasks.map((t) => (t.id === active.id ? { ...t, status: overCol } : t)),
     );
   };
 
-  const handleDragEnd = async ({ active, over }) => {
+  const handleDragEnd = ({ active, over }) => {
     setActiveTask(null);
     if (!over) return;
-
     const updated = [...tasks];
     const activeIndex = updated.findIndex((t) => t.id === active.id);
     const overIndex = updated.findIndex((t) => t.id === over.id);
-
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-      const reordered = arrayMove(updated, activeIndex, overIndex);
-      setTasks(reordered);
-      await saveTasks(reordered);
-    } else {
-      await saveTasks(updated);
+      updateTasksLocally(arrayMove(updated, activeIndex, overIndex));
     }
   };
 
-  const saveTasks = async (updatedTasks) => {
-    try {
-      setStep("saving");
-      setError("");
-      await window.electron.invoke("tasks:save", {
-        tasks: updatedTasks,
-        commitMessage: "chore: update tasks",
-      });
-      setStep("ready");
-    } catch (err) {
-      setError(err.message);
-      setStep("error");
-    }
-  };
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    const updated = tasks.map((t) =>
-      t.id === taskId ? { ...t, status: newStatus } : t,
+  const handleStatusChange = (taskId, newStatus) => {
+    updateTasksLocally(
+      tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
     );
-    setTasks(updated);
-    await saveTasks(updated);
+  };
+
+  const handleDeleteTask = (taskId) => {
+    updateTasksLocally(tasks.filter((t) => t.id !== taskId));
+  };
+
+  const handleEditTask = (task) => setEditingTask(task);
+
+  const handleSaveEdit = (updatedTask) => {
+    updateTasksLocally(
+      tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+    );
+    setEditingTask(null);
+  };
+
+  const handleCreateTask = (newTask) => {
+    updateTasksLocally([...tasks, newTask]);
   };
 
   const handleInitializeTasks = async () => {
     try {
-      setStep("saving");
+      setStep("syncing");
       setError("");
       const result = await window.electron.invoke("tasks:init", {});
       setTasks(result.tasks);
@@ -143,20 +170,7 @@ export default function KanbanPage({
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-            <rect
-              width="40"
-              height="40"
-              rx="10"
-              fill="var(--color-teal-dark)"
-            />
-            <path
-              d="M10 20h20M20 10v20"
-              stroke="var(--color-teal-light)"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
+          <img src={logo} width="60" height="60" alt="CodeSprint" />
           <h1 className={styles.appName}>CodeSprint</h1>
           {activeRepo && (
             <span className={styles.repoBadge}>
@@ -165,19 +179,40 @@ export default function KanbanPage({
           )}
         </div>
 
+        <div className={styles.headerCenter}>
+          <button
+            className={styles.btnNewTask}
+            onClick={() => setShowModal(true)}
+          >
+            + Nova task
+          </button>
+          <button
+            className={styles.btnFlags}
+            onClick={() => setShowColumnsManager(true)}
+          >
+            âš™ Colunas
+          </button>
+        </div>
+
         <div className={styles.headerRight}>
-          {step === "saving" && (
-            <div className={styles.savingWrap}>
-              <LoadingSpinner size="sm" />
-              <span className={styles.savingText}>Sincronizando...</span>
-            </div>
-          )}
-          {step === "ready" && (
-            <span className={styles.syncedText}>Sincronizado</span>
-          )}
           {step === "error" && (
             <span className={styles.errorText}>{error}</span>
           )}
+          <button
+            className={`${styles.btnSync} ${hasChanges ? styles.btnSyncPending : ""}`}
+            onClick={handleSync}
+            disabled={step === "syncing" || !hasChanges}
+          >
+            {step === "syncing" ? (
+              <>
+                <LoadingSpinner size="sm" /> Sincronizando...
+              </>
+            ) : hasChanges ? (
+              "â†‘ Sync"
+            ) : (
+              "Sincronizado"
+            )}
+          </button>
           <button className={styles.btnLogout} onClick={handleLogout}>
             Sair
           </button>
@@ -193,15 +228,17 @@ export default function KanbanPage({
         <div className={styles.emptyState}>
           <h2 className={styles.emptyTitle}>Nenhum backlog encontrado</h2>
           <p className={styles.emptyText}>
-            Esse repositório ainda não tem um <code>tasks.md</code>. Você pode
-            criar um backlog inicial agora e começar a testar o fluxo completo.
+            Esse repositÃ³rio ainda nÃ£o tem um <code>tasks.md</code>. VocÃª pode
+            criar um backlog inicial agora e comeÃ§ar a testar o fluxo completo.
           </p>
           <button
             className={styles.btnPrimary}
             onClick={handleInitializeTasks}
-            disabled={step === "saving"}
+            disabled={step === "syncing"}
           >
-            {step === "saving" ? "Criando backlog..." : "Criar tasks.md inicial"}
+            {step === "syncing"
+              ? "Criando backlog..."
+              : "Criar tasks.md inicial"}
           </button>
           {step === "error" && <p className={styles.emptyError}>{error}</p>}
         </div>
@@ -214,24 +251,49 @@ export default function KanbanPage({
           onDragEnd={handleDragEnd}
         >
           <div className={styles.board}>
-            {COLUMNS.map((col) => (
+            {columns.map((col) => (
               <KanbanColumn
-                key={col.key}
-                columnId={col.key}
+                key={col.id}
+                columnId={col.id}
                 title={col.label}
                 color={col.color}
-                tasks={tasksByStatus(col.key)}
+                tasks={tasksByStatus(col.id)}
                 onStatusChange={handleStatusChange}
+                onDeleteTask={handleDeleteTask}
+                onEditTask={handleEditTask}
               />
             ))}
           </div>
-
           <DragOverlay>
             {activeTask && (
               <TaskCard task={activeTask} onStatusChange={() => {}} />
             )}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {showModal && (
+        <TaskModal
+          onSave={handleCreateTask}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingTask(null)}
+        />
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      {showColumnsManager && (
+        <ColumnsManager onClose={() => setShowColumnsManager(false)} />
       )}
     </div>
   );

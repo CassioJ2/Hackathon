@@ -25,6 +25,8 @@ export default function App() {
         }
       } else if (session.isAuthenticated) {
         setPage("repo-select");
+      } else {
+        setPage("login");
       }
     });
   }, []);

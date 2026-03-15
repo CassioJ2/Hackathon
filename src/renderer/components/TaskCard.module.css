@@ -10,7 +10,15 @@
 }
 
 .card:hover {
-  border-color: var(--color-teal);
+  border-color: var(--card-color);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .title {
@@ -18,6 +26,26 @@
   font-weight: var(--font-medium);
   color: var(--text-primary);
   line-height: var(--leading-base);
+  flex: 1;
+}
+
+.btnDelete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.btnDelete:hover {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .subtasks {
@@ -70,4 +98,123 @@
 .btnDone:hover {
   border-color: var(--color-teal-light);
   color: var(--color-teal-light);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.card:hover .statusDot {
+  opacity: 1;
+}
+
+.description {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.subtaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.subtaskItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.subtaskDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-graphite-soft);
+  flex-shrink: 0;
+}
+
+.subtaskDotDone {
+  background: var(--color-teal);
+}
+
+.subtaskTitle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.subtaskTitleDone {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.flag {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--flag-color);
+  color: var(--flag-color);
+}
+
+.cardTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--type-color);
+  color: var(--type-color);
+  margin-bottom: var(--space-1);
+  width: fit-content;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cardTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--type-color);
+  color: var(--type-color);
+  margin-bottom: var(--space-1);
+  width: fit-content;
 }

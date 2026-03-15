@@ -54,15 +54,15 @@ export default function RepoSelectPage({ onRepoSelected }) {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Selecionar repositÛrio</h1>
+        <h1 className={styles.title}>Selecionar reposit√≥rio</h1>
         <p className={styles.subtitle}>
-          Escolha o repo onde o tasks.md ser· sincronizado
+          Escolha o reposit√≥rio onde o tasks.md ser sincronizado
         </p>
 
         {step === "loading" && (
           <div className={styles.loadingWrap}>
             <LoadingSpinner />
-            <p className={styles.loadingText}>Carregando repositÛrios...</p>
+            <p className={styles.loadingText}>Carregando reposit√≥rios...</p>
           </div>
         )}
 
@@ -71,7 +71,7 @@ export default function RepoSelectPage({ onRepoSelected }) {
             <input
               className={styles.search}
               type="text"
-              placeholder="Buscar repositÛrio..."
+              placeholder="Buscar reposit√≥rio..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -84,14 +84,12 @@ export default function RepoSelectPage({ onRepoSelected }) {
                   onClick={() => setSelected(repo)}
                 >
                   <span className={styles.repoName}>{repo.name}</span>
-                  <span className={styles.repoDesc}>
-                    {repo.fullName}
-                  </span>
+                  <span className={styles.repoDesc}>{repo.fullName}</span>
                 </button>
               ))}
 
               {filtered.length === 0 && (
-                <p className={styles.empty}>Nenhum repositÛrio encontrado</p>
+                <p className={styles.empty}>Nenhum reposit√≥rio encontrado</p>
               )}
             </div>
 
@@ -103,7 +101,7 @@ export default function RepoSelectPage({ onRepoSelected }) {
               {step === "confirming" ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                "Confirmar seleÁ„o"
+                "Confirmar sele√ß√£o"
               )}
             </button>
           </>

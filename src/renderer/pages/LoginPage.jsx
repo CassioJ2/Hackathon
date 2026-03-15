@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import styles from "./LoginPage.module.css";
+import logo from "../logo.svg";
 
 export default function LoginPage({ onAuthSuccess }) {
   const [step, setStep] = useState("idle"); // idle | waiting | polling | error
@@ -49,20 +50,7 @@ export default function LoginPage({ onAuthSuccess }) {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.logo}>
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect
-              width="40"
-              height="40"
-              rx="10"
-              fill="var(--color-teal-dark)"
-            />
-            <path
-              d="M10 20h20M20 10v20"
-              stroke="var(--color-teal-light)"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
+          <img src={logo} width="250" height="140" alt="CodeSprint" />
         </div>
 
         <h1 className={styles.title}>CodeSprint</h1>
