@@ -81,19 +81,6 @@ const REMOTE_TASK_FILES = [
     'playbook/mcp.md'
 ]
 
-function buildManagedBranchFiles(tasksMarkdown, playbookFiles) {
-    const files = [{ path: 'tasks.md', content: tasksMarkdown || '# Tasks\n' }]
-
-    for (const fileName of REMOTE_TASK_FILES) {
-        const content = playbookFiles[fileName]
-        if (content) {
-            files.push({ path: fileName, content })
-        }
-    }
-
-    return files
-}
-
 async function syncManagedFilesToRemote({
     token,
     owner,
@@ -235,7 +222,6 @@ export function createIpcHandlers({
             })
 
             store.set('activeRepo', activeRepo)
-            await ensureBranch(token, owner, repo, getTasksBranch(activeRepo))
             await ensureRepoAiContextFiles(activeRepo.localPath, activeRepo)
             startPoller(mainWindow)
 
@@ -246,8 +232,10 @@ export function createIpcHandlers({
             const repoMarkdown = await readRepoTasksMarkdown(activeRepo.localPath)
             if (repoMarkdown) {
                 syncLocalWatcherSnapshot(repoMarkdown)
+                const existingDirty = getRepoDirty(store, activeRepo)
+                let remoteFile = null
                 try {
-                    const remoteFile = await getFile(token, owner, repo, 'tasks.md', {
+                    remoteFile = await getFile(token, owner, repo, 'tasks.md', {
                         ref: getTasksBranch(activeRepo)
                     })
                     store.set('tasksSha', remoteFile?.sha || null)
@@ -255,8 +243,14 @@ export function createIpcHandlers({
                         ...(store.get('remoteFileShas') || {}),
                         'tasks.md': remoteFile?.sha || null
                     })
+                    setRepoDirty(
+                        store,
+                        activeRepo,
+                        !remoteFile || remoteFile.content !== repoMarkdown
+                    )
                 } catch {
                     store.set('tasksSha', null)
+                    setRepoDirty(store, activeRepo, existingDirty)
                 }
 
                 return parse(repoMarkdown)
@@ -264,8 +258,10 @@ export function createIpcHandlers({
 
             const localMarkdown = await readLocalTasksMarkdown(owner, repo)
             if (localMarkdown) {
+                const existingDirty = getRepoDirty(store, activeRepo)
+                let remoteFile = null
                 try {
-                    const remoteFile = await getFile(token, owner, repo, 'tasks.md', {
+                    remoteFile = await getFile(token, owner, repo, 'tasks.md', {
                         ref: getTasksBranch(activeRepo)
                     })
                     store.set('tasksSha', remoteFile?.sha || null)
@@ -273,8 +269,14 @@ export function createIpcHandlers({
                         ...(store.get('remoteFileShas') || {}),
                         'tasks.md': remoteFile?.sha || null
                     })
+                    setRepoDirty(
+                        store,
+                        activeRepo,
+                        !remoteFile || remoteFile.content !== localMarkdown
+                    )
                 } catch {
                     store.set('tasksSha', null)
+                    setRepoDirty(store, activeRepo, existingDirty)
                 }
 
                 return parse(localMarkdown)
@@ -317,7 +319,6 @@ export function createIpcHandlers({
             const { owner, repo } = activeRepo
 
             store.set('activeRepo', activeRepo)
-            await ensureBranch(token, owner, repo, getTasksBranch(activeRepo))
             await ensureRepoAiContextFiles(activeRepo.localPath, activeRepo)
             startPoller(mainWindow)
 
@@ -359,8 +360,6 @@ export function createIpcHandlers({
             const token = requireAuth(store)
             const activeRepo = requireActiveRepo(store)
             const { owner, repo } = activeRepo
-
-            await ensureBranch(token, owner, repo, getTasksBranch(activeRepo))
 
             const file = await getFile(token, owner, repo, 'tasks.md', {
                 ref: getTasksBranch(activeRepo)

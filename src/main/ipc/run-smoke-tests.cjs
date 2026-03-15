@@ -341,10 +341,6 @@ async function main() {
                 return { sha: 'sha-remoto', content: '# Tasks\n\n- [ ] Remoto\n' }
             },
             updateFile: async () => ({ sha: 'sha-1' }),
-            ensureBranch: async (_token, owner, repo, branch) => {
-                ensuredBranches.push(`${owner}/${repo}:${branch}`)
-                return { created: false, branch }
-            },
             parse: (markdown) => [{ id: 'TASK-001', title: markdown.includes('Repo local') ? 'Repo local' : markdown.includes('Local') ? 'Local' : 'Remoto', status: 'pending', subtasks: [] }],
             stringify: () => '# Tasks\n',
             readRepoTasksMarkdown: async () => '# Tasks\n\n- [ ] Repo local\n',
@@ -366,15 +362,51 @@ async function main() {
 
         assert.equal(result[0].title, 'Repo local')
         assert.equal(store.get('tasksSha'), 'sha-remoto')
-        assert.deepEqual(ensuredBranches, ['cassio/ai-project:tasks'])
+        assert.deepEqual(ensuredBranches, [])
         assert.equal(refs[0], 'tasks')
         assert.equal(ensuredContexts[0].localPath, 'D:\\Projeto\\AI-Project')
+        assert.equal(store.get('dirtyRepos')['cassio/ai-project'], true)
         assert.deepEqual(store.get('activeRepo'), {
             owner: 'cassio',
             repo: 'ai-project',
             localPath: 'D:\\Projeto\\AI-Project',
             tasksBranch: 'tasks'
         })
+    })
+
+    await run('tasks:load limpa dirty quando local e remoto estao iguais', async () => {
+        const { mainWindow } = createMainWindowRecorder()
+        const store = createMemoryStore({
+            token: 'token-123',
+            dirtyRepos: { 'cassio/ai-project': true }
+        })
+
+        const handlers = createIpcHandlers({
+            env: { GITHUB_CLIENT_ID: 'client-id' },
+            mainWindow,
+            store,
+            startDeviceFlow: async () => ({}),
+            pollForToken: async () => 'token',
+            getRepos: async () => [],
+            getRepoCollaborators: async () => [],
+            getFile: async () => ({ sha: 'sha-remoto', content: '# Tasks\n\n- [ ] Igual\n' }),
+            updateFile: async () => ({ sha: 'sha-1' }),
+            parse: () => [{ id: 'TASK-001', title: 'Igual', status: 'pending', subtasks: [] }],
+            stringify: () => '# Tasks\n',
+            readRepoTasksMarkdown: async () => '# Tasks\n\n- [ ] Igual\n',
+            ensureRepoAiContextFiles: async () => ({ created: [] }),
+            startPoller: () => {},
+            stopPoller: () => {},
+            createInitialTasksMarkdown: () => '# Tasks\n'
+        })
+
+        await handlers['tasks:load'](null, {
+            owner: 'cassio',
+            repo: 'ai-project',
+            localPath: 'D:\\Projeto\\AI-Project'
+        })
+
+        assert.equal(store.get('dirtyRepos')['cassio/ai-project'], false)
     })
 
     await run('tasks:load nao reescreve a branch remota ao carregar estado local', async () => {
@@ -464,6 +496,7 @@ async function main() {
             activeRepo: { owner: 'cassio', repo: 'ai-project', localPath: 'D:\\Projeto\\AI-Project' }
         })
         let remoteSnapshotCalls = 0
+        let ensureBranchCalls = 0
 
         const handlers = createIpcHandlers({
             env: { GITHUB_CLIENT_ID: 'client-id' },
@@ -475,6 +508,10 @@ async function main() {
             getRepoCollaborators: async () => [],
             getFile: async () => null,
             updateFile: async () => ({ sha: 'sha-created' }),
+            ensureBranch: async () => {
+                ensureBranchCalls += 1
+                return { created: false, branch: 'tasks' }
+            },
             replaceBranchWithSnapshot: async () => {
                 remoteSnapshotCalls += 1
                 return {}
@@ -492,6 +529,7 @@ async function main() {
 
         assert.equal(result.created, true)
         assert.equal(remoteSnapshotCalls, 0)
+        assert.equal(ensureBranchCalls, 0)
     })
 
     await run('tasks:cache salva o estado local do repo ativo no cache e no repo real', async () => {
@@ -543,6 +581,7 @@ async function main() {
         })
         const writes = []
         const repoWrites = []
+        let ensureBranchCalls = 0
 
         const handlers = createIpcHandlers({
             env: { GITHUB_CLIENT_ID: 'client-id' },
@@ -554,7 +593,10 @@ async function main() {
             getRepoCollaborators: async () => [],
             getFile: async () => ({ sha: 'sha-remoto', content: '# Tasks\n\n- [ ] Remota\n' }),
             updateFile: async () => ({ sha: 'sha-1' }),
-            ensureBranch: async () => ({ created: false, branch: 'tasks' }),
+            ensureBranch: async () => {
+                ensureBranchCalls += 1
+                return { created: false, branch: 'tasks' }
+            },
             parse: () => [{ id: 'TASK-001', title: 'Remota', status: 'pending', subtasks: [] }],
             stringify: () => '# Tasks\n',
             writeLocalTasksMarkdown: async (...args) => {
@@ -574,6 +616,7 @@ async function main() {
         assert.equal(result.sha, 'sha-remoto')
         assert.equal(writes[0][2], '# Tasks\n\n- [ ] Remota\n')
         assert.equal(repoWrites[0][1], '# Tasks\n\n- [ ] Remota\n')
+        assert.equal(ensureBranchCalls, 0)
     })
 
     await run('tasks:pull retorna conflito quando ha mudancas locais pendentes', async () => {

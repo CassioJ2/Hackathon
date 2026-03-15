@@ -26,10 +26,11 @@ export default function App() {
             repo: session.activeRepo.repo,
             localPath: session.activeRepo.localPath,
           });
+          const refreshedSession = await window.electron.invoke("session:get");
 
-          setActiveRepo(session.activeRepo);
+          setActiveRepo(refreshedSession.activeRepo || session.activeRepo);
           setTasks(loadedTasks);
-          setHasLocalChanges(!!session.tasksDirty);
+          setHasLocalChanges(!!refreshedSession.tasksDirty);
           setPage("kanban");
         } catch (_error) {
           setPage("repo-select");
