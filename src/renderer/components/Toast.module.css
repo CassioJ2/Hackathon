@@ -1,0 +1,69 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  z-index: 200;
+  animation: slideIn var(--duration-base) var(--ease-default);
+  max-width: 360px;
+  border: 1px solid transparent;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.info {
+  background: var(--surface-card);
+  border-color: var(--color-graphite-mid);
+  color: var(--text-primary);
+}
+
+.success {
+  background: var(--surface-card);
+  border-color: var(--color-teal);
+  color: var(--color-teal-light);
+}
+
+.warning {
+  background: var(--surface-card);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.error {
+  background: var(--surface-card);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.message {
+  flex: 1;
+  line-height: var(--leading-base);
+}
+
+.btnClose {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: 2px;
+  flex-shrink: 0;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+.btnClose:hover {
+  color: var(--text-primary);
+}

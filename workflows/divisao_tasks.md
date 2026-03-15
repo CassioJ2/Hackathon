@@ -59,6 +59,7 @@
   - [x] `session:clear` -> limpa sessao local e para o polling
   - [x] Smoke tests da camada IPC
   - [x] Recarregar `tasks.md` remoto automaticamente em conflito de salvamento
+  - [x] Expor contrato IPC para o frontend consultar canais, payloads e eventos
 
 ### Fase 5 - Empacotamento
 
@@ -79,24 +80,25 @@
 
 ### Fase 2 - Telas de Autenticacao e Selecao
 
-- [ ] Tela de Login
-  - [ ] Exibir `user_code` e link `verification_uri` para o usuario autorizar
-  - [ ] Estado de loading durante polling do token
-  - [ ] Redirecionar para selecao de repo apos `github:auth-success`
-- [ ] Tela de Selecao de Repositorio
-  - [ ] Listar repositorios (via IPC `github:repos`)
+- [x] Tela de Login
+  - [x] Exibir `user_code` e link `verification_uri` para o usuario autorizar
+  - [x] Estado de loading durante polling do token
+  - [x] Redirecionar para selecao de repo apos `github:auth-success`
+- [x] Tela de Selecao de Repositorio
+  - [x] Listar repositorios (via IPC `github:repos`)
   - [ ] Campo de busca/filtro
-  - [ ] Botao de confirmar selecao -> chama `tasks:load`
+  - [x] Botao de confirmar selecao -> chama `tasks:load`
 
 ### Fase 3 - Kanban Board
 
-- [ ] Componente `KanbanBoard`
-  - [ ] 3 colunas: To Do / In Progress / Done
-  - [ ] Cards de task com titulo e subtasks
-  - [ ] Drag and drop entre colunas (`@dnd-kit/core` ou similar)
-  - [ ] Ao soltar card, disparar `tasks:save` via IPC
-- [ ] Componente `TaskCard`
-  - [ ] Exibir titulo, subtasks e contagem de progresso (`2/3`)
+- [x] Componente `KanbanBoard`
+  - [x] 3 colunas: To Do / In Progress / Done
+  - [x] Cards de task com titulo e subtasks
+  - [x] Drag and drop entre colunas (`@dnd-kit/core` ou similar)
+  - [x] Ao soltar card, disparar `tasks:save` via IPC
+- [x] Componente `TaskCard`
+  - [x] Exibir titulo, subtasks e contagem de progresso (`2/3`)
+  - [x] Criar `tasks.md` inicial pela UI quando o repositorio ainda estiver vazio
 
 ### Fase 4 - Criacao e Edicao de Tasks
 

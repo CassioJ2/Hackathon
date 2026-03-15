@@ -13,29 +13,49 @@ import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import LoadingSpinner from "../components/LoadingSpinner";
 import styles from "./KanbanPage.module.css";
+import Toast from "../components/Toast";
 
 const COLUMNS = [
   { key: "pending", label: "Pendente", color: "#4F4F4F" },
   { key: "in_progress", label: "Em andamento", color: "#00A676" },
-  { key: "done", label: "Concluído", color: "#94D2BD" },
+  { key: "done", label: "Conclu�do", color: "#94D2BD" },
 ];
 
-export default function KanbanPage({ onLogout }) {
-  const [tasks, setTasks] = useState([]);
+export default function KanbanPage({
+  initialTasks,
+  activeRepo,
+  onTasksChange,
+  onLogout,
+}) {
+  const [tasks, setTasks] = useState(initialTasks || []);
   const [step, setStep] = useState("loading");
   const [error, setError] = useState("");
   const [activeTask, setActiveTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   useEffect(() => {
+    setTasks(initialTasks || []);
+    setStep("ready");
+  }, [initialTasks]);
+
+  useEffect(() => {
+    onTasksChange?.(tasks);
+  }, [tasks, onTasksChange]);
+
+  useEffect(() => {
     const cleanup = window.electron.on(
       "tasks:external-update",
       (updatedTasks) => {
         setTasks(updatedTasks);
+        setToast({
+          message: "Tasks atualizadas pelo GitHub!",
+          type: "success",
+        });
       },
     );
 
@@ -43,7 +63,7 @@ export default function KanbanPage({ onLogout }) {
       .invoke("session:get")
       .then((session) => {
         if (!session.activeRepo) {
-          onLogout(); // volta para login/repo-select
+          onLogout();
           return;
         }
         return window.electron.invoke("tasks:init");
@@ -99,6 +119,7 @@ export default function KanbanPage({ onLogout }) {
   const saveTasks = async (updatedTasks) => {
     try {
       setStep("saving");
+      setError("");
       await window.electron.invoke("tasks:save", {
         tasks: updatedTasks,
         commitMessage: "chore: update tasks",
@@ -118,10 +139,17 @@ export default function KanbanPage({ onLogout }) {
     await saveTasks(updated);
   };
 
-  const handleCreateTask = async (newTask) => {
-    const updated = [...tasks, newTask];
-    setTasks(updated);
-    await saveTasks(updated);
+  const handleInitializeTasks = async () => {
+    try {
+      setStep("saving");
+      setError("");
+      const result = await window.electron.invoke("tasks:init", {});
+      setTasks(result.tasks);
+      setStep("ready");
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
   };
 
   const handleLogout = async () => {
@@ -150,6 +178,11 @@ export default function KanbanPage({ onLogout }) {
             />
           </svg>
           <h1 className={styles.appName}>CodeSprint</h1>
+          {activeRepo && (
+            <span className={styles.repoBadge}>
+              {activeRepo.owner}/{activeRepo.repo}
+            </span>
+          )}
         </div>
 
         <div className={styles.headerCenter}>
@@ -185,6 +218,24 @@ export default function KanbanPage({ onLogout }) {
           <LoadingSpinner />
           <p>Carregando tasks...</p>
         </div>
+      ) : tasks.length === 0 ? (
+        <div className={styles.emptyState}>
+          <h2 className={styles.emptyTitle}>Nenhum backlog encontrado</h2>
+          <p className={styles.emptyText}>
+            Esse reposit�rio ainda n�o tem um <code>tasks.md</code>. Voc� pode
+            criar um backlog inicial agora e come�ar a testar o fluxo completo.
+          </p>
+          <button
+            className={styles.btnPrimary}
+            onClick={handleInitializeTasks}
+            disabled={step === "saving"}
+          >
+            {step === "saving"
+              ? "Criando backlog..."
+              : "Criar tasks.md inicial"}
+          </button>
+          {step === "error" && <p className={styles.emptyError}>{error}</p>}
+        </div>
       ) : (
         <DndContext
           sensors={sensors}
@@ -218,6 +269,13 @@ export default function KanbanPage({ onLogout }) {
         <TaskModal
           onSave={handleCreateTask}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>

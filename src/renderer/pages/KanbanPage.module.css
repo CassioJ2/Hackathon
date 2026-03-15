@@ -28,6 +28,14 @@
   color: var(--text-primary);
 }
 
+.repoBadge {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  border: 1px solid var(--color-graphite-mid);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
 .headerRight {
   display: flex;
   align-items: center;
@@ -69,6 +77,25 @@
   color: var(--color-danger);
 }
 
+.btnPrimary {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-teal-dark);
+  color: var(--text-on-brand);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--color-teal);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .board {
   display: flex;
   gap: var(--space-4);
@@ -88,28 +115,29 @@
   font-size: var(--text-sm);
 }
 
-.headerCenter {
-  flex: 1;
+.emptyState {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
 }
 
-.btnNewTask {
+.emptyTitle {
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+}
+
+.emptyText {
+  max-width: 560px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.emptyError {
+  color: var(--color-danger);
   font-size: var(--text-sm);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-teal-dark);
-  color: var(--text-on-brand);
-  border: none;
-  font-weight: var(--font-medium);
-  transition: background var(--duration-fast) var(--ease-default);
-}
-
-.btnNewTask:hover {
-  background: var(--color-teal);
-}
-
-.syncedText {
-  font-size: var(--text-sm);
-  color: var(--color-teal-light);
 }

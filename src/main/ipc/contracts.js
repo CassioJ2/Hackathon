@@ -47,9 +47,25 @@ export function createIpcHandlers({
     stopPoller,
     createInitialTasksMarkdown
 }) {
+    const saveQueues = new Map()
+
+    function enqueueRepoSave(repoKey, operation) {
+        const previous = saveQueues.get(repoKey) || Promise.resolve()
+        const next = previous.catch(() => {}).then(operation)
+
+        saveQueues.set(repoKey, next)
+
+        return next.finally(() => {
+            if (saveQueues.get(repoKey) === next) {
+                saveQueues.delete(repoKey)
+            }
+        })
+    }
+
     return {
         'github:login': async () => {
             const clientId = getClientId(env)
+            console.log('[ipc] github:login invoked')
             const deviceData = await startDeviceFlow(clientId)
 
             pollForToken(clientId, deviceData.device_code, deviceData.interval)
@@ -59,6 +75,7 @@ export function createIpcHandlers({
                     startPoller(mainWindow)
                 })
                 .catch((err) => {
+                    console.error('[ipc] github:login async auth error:', err)
                     mainWindow.webContents.send('github:auth-error', err.message)
                 })
 
@@ -133,32 +150,36 @@ export function createIpcHandlers({
             const token = requireAuth(store)
             const activeRepo = requireActiveRepo(store)
             const { owner, repo } = activeRepo
-            const sha = store.get('tasksSha')
-            const markdown = stringify(tasks)
-            const message = commitMessage || 'chore: update tasks'
+            const repoKey = `${owner}/${repo}`
 
-            try {
-                const result = await updateFile(token, owner, repo, 'tasks.md', markdown, sha, message)
-                store.set('tasksSha', result.sha)
+            return enqueueRepoSave(repoKey, async () => {
+                const sha = store.get('tasksSha')
+                const markdown = stringify(tasks)
+                const message = commitMessage || 'chore: update tasks'
 
-                return { success: true, sha: result.sha }
-            } catch (error) {
-                if (!isShaConflict(error)) {
-                    throw error
+                try {
+                    const result = await updateFile(token, owner, repo, 'tasks.md', markdown, sha, message)
+                    store.set('tasksSha', result.sha)
+
+                    return { success: true, sha: result.sha }
+                } catch (error) {
+                    if (!isShaConflict(error)) {
+                        throw error
+                    }
+
+                    const latestFile = await getFile(token, owner, repo, 'tasks.md')
+
+                    if (latestFile) {
+                        store.set('tasksSha', latestFile.sha)
+                        mainWindow.webContents.send('tasks:external-update', parse(latestFile.content))
+                    } else {
+                        store.set('tasksSha', null)
+                        mainWindow.webContents.send('tasks:external-update', [])
+                    }
+
+                    throw new Error('tasks.md changed on GitHub before saving. Latest version was reloaded.')
                 }
-
-                const latestFile = await getFile(token, owner, repo, 'tasks.md')
-
-                if (latestFile) {
-                    store.set('tasksSha', latestFile.sha)
-                    mainWindow.webContents.send('tasks:external-update', parse(latestFile.content))
-                } else {
-                    store.set('tasksSha', null)
-                    mainWindow.webContents.send('tasks:external-update', [])
-                }
-
-                throw new Error('tasks.md changed on GitHub before saving. Latest version was reloaded.')
-            }
+            })
         },
 
         'session:get': () => {

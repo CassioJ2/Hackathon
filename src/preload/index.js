@@ -1,10 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { IPC_CONTRACT } from '../main/ipc/spec'
 
 /**
  * Expõe uma API segura para o renderer via window.electron.
  * O renderer nunca acessa o ipcRenderer diretamente.
  */
 contextBridge.exposeInMainWorld('electron', {
+    contract: IPC_CONTRACT,
+
     /**
      * Chama um handler IPC no processo principal e aguarda a resposta.
      * @param {string} channel
@@ -12,6 +15,12 @@ contextBridge.exposeInMainWorld('electron', {
      * @returns {Promise<any>}
      */
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+
+    /**
+     * Retorna o contrato de canais IPC exposto para o renderer.
+     * @returns {typeof IPC_CONTRACT}
+     */
+    getContract: () => IPC_CONTRACT,
 
     /**
      * Escuta eventos enviados pelo processo principal.

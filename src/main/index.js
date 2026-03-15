@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { setDefaultResultOrder } from 'dns'
 import { join } from 'path'
 import { loadEnvFile } from './config/env'
 import { registerIpcHandlers } from './ipc/handlers'
@@ -6,7 +7,16 @@ import { stopPoller } from './watcher/poller'
 
 const isDev = process.env.NODE_ENV === 'development'
 
-loadEnvFile()
+setDefaultResultOrder('ipv4first')
+console.log('[net] DNS default result order set to ipv4first')
+
+const envPath = loadEnvFile()
+
+if (envPath) {
+    console.log(`[env] Loaded environment from ${envPath}`)
+} else {
+    console.warn('[env] No .env file found in expected locations')
+}
 
 function createWindow() {
     const mainWindow = new BrowserWindow({

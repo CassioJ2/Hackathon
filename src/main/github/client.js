@@ -1,4 +1,5 @@
 import { GitHubApiError } from './errors'
+import { fetchWithTimeout } from './http'
 
 /**
  * GitHub API Client
@@ -37,7 +38,7 @@ async function readGitHubError(res, fallbackMessage) {
  * @returns {Promise<Array<{ id, name, fullName, owner, private, updatedAt }>>}
  */
 export async function getRepos(token) {
-    const res = await fetch(`${API}/user/repos?sort=updated&per_page=50`, {
+    const res = await fetchWithTimeout(`${API}/user/repos?sort=updated&per_page=50`, {
         headers: headers(token)
     })
 
@@ -66,7 +67,7 @@ export async function getRepos(token) {
  * @returns {Promise<{ content: string, sha: string } | null>}
  */
 export async function getFile(token, owner, repo, path) {
-    const res = await fetch(`${API}/repos/${owner}/${repo}/contents/${path}`, {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/contents/${path}`, {
         headers: headers(token)
     })
 
@@ -105,7 +106,7 @@ export async function updateFile(token, owner, repo, path, content, sha, message
         body.sha = sha
     }
 
-    const res = await fetch(`${API}/repos/${owner}/${repo}/contents/${path}`, {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/contents/${path}`, {
         method: 'PUT',
         headers: headers(token),
         body: JSON.stringify(body)

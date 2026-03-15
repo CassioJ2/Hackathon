@@ -5,6 +5,7 @@ import store from '../store'
 import { createInitialTasksMarkdown } from '../tasks/template'
 import { startPoller, stopPoller } from '../watcher/poller'
 import { createIpcHandlers } from './contracts'
+import { IPC_CONTRACT } from './spec'
 
 /**
  * Registra todos os handlers IPC do processo principal.
@@ -27,6 +28,8 @@ export function registerIpcHandlers(ipcMain, mainWindow) {
         stopPoller,
         createInitialTasksMarkdown
     })
+
+    ipcMain.handle('ipc:contract', () => IPC_CONTRACT)
 
     for (const [channel, handler] of Object.entries(handlers)) {
         ipcMain.handle(channel, handler)
