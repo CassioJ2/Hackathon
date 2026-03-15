@@ -4,30 +4,35 @@
 - [ ] Definir primeiras tasks
   - [ ] Revisar backlog
   - [ ] Priorizar sprint
+- [ ] teste 2 <!--meta:{"description":"e o teste","priority":"low","labels":["bug","feature","urgente","melhoria","docs"],"cardType":"bug"}-->
+  - [ ] as
+  - [ ] ea
 - [ ] teste <!--meta:{"description":"aa","priority":"low","labels":["bug"]}-->
-- [ ] aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa <!--meta:{"description":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","priority":"high","labels":["bug","urgente","melhoria","docs","feature"],"status":"backlog","cardType":"blocker","assignee":"CassioJ2"}-->
-  - [ ] a
-  - [ ] b
-  - [ ] c
+- [ ] aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa <!--meta:{"description":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","priority":"high","labels":["bug","urgente","melhoria","docs","feature","flag-1773593771484","flag-1773593984085"],"status":"col-1773593950268","cardType":"type-1773593997780","assignee":"CassioJ2"}-->
+  - [x] a
+  - [x] b
+  - [x] c
   - [ ] d
-  - [ ] e
+  - [x] e
   - [ ] f
   - [ ] g
   - [ ] h
   - [ ] i
   - [ ] j
-  - [ ] k
-  - [ ] l
+  - [x] k
+  - [x] l
   - [ ] m
   - [ ] n
   - [ ] o
-  - [ ] p
+  - [x] p
   - [ ] q
   - [ ] r
   - [ ] s
   - [ ] t
-  - [ ] u
+  - [x] u
   - [ ] v
   - [ ] 1
   - [ ] 2
   - [ ] 3
+  - [ ] 4
+  - [ ] 5
