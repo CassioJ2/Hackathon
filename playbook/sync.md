@@ -22,6 +22,9 @@ Finalidade:
 - `playbook/sync.md`
 - `playbook/ui.md`
 - `playbook/playbooks.md`
+- `playbook/ipc.md`
+- `playbook/parser.md`
+- `playbook/mcp.md`
 
 ## Fluxos suportados
 
