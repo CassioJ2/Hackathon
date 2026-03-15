@@ -6,15 +6,48 @@ const STATUS_CONFIG = {
   done: { label: "Concluído", color: "#94D2BD" },
 };
 
-export default function TaskCard({ task, onStatusChange }) {
+const TrashIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
+);
+
+export default function TaskCard({ task, onStatusChange, onDelete }) {
   const subtasksDone =
     task.subtasks?.filter((s) => s.status === "done").length ?? 0;
   const subtasksTotal = task.subtasks?.length ?? 0;
   const status = STATUS_CONFIG[task.status];
 
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete?.(task.id);
+  };
+
   return (
     <div className={styles.card} style={{ "--card-color": status.color }}>
-      <p className={styles.title}>{task.title}</p>
+      <div className={styles.cardHeader}>
+        <p className={styles.title}>{task.title}</p>
+        <button
+          className={styles.btnDelete}
+          onClick={handleDelete}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Deletar task"
+        >
+          <TrashIcon />
+        </button>
+      </div>
 
       {subtasksTotal > 0 && (
         <div className={styles.subtasks}>
@@ -34,6 +67,7 @@ export default function TaskCard({ task, onStatusChange }) {
         {task.status !== "pending" && (
           <button
             className={styles.btnAction}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onStatusChange(task.id, "pending")}
           >
             Pendente
@@ -42,6 +76,7 @@ export default function TaskCard({ task, onStatusChange }) {
         {task.status !== "in_progress" && (
           <button
             className={styles.btnAction}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onStatusChange(task.id, "in_progress")}
           >
             Em andamento
@@ -50,6 +85,7 @@ export default function TaskCard({ task, onStatusChange }) {
         {task.status !== "done" && (
           <button
             className={`${styles.btnAction} ${styles.btnDone}`}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onStatusChange(task.id, "done")}
           >
             Concluído

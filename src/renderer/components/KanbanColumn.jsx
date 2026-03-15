@@ -12,6 +12,7 @@ export default function KanbanColumn({
   color,
   columnId,
   onStatusChange,
+  onDeleteTask,
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnId });
 
@@ -34,6 +35,7 @@ export default function KanbanColumn({
               key={task.id}
               task={task}
               onStatusChange={onStatusChange}
+              onDelete={onDeleteTask}
             />
           ))}
 

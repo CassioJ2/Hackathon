@@ -129,6 +129,13 @@ export default function KanbanPage({
     await saveTasks(updated);
   };
 
+  // NOVO: deletar task
+  const handleDeleteTask = async (taskId) => {
+    const updated = tasks.filter((t) => t.id !== taskId);
+    setTasks(updated);
+    await saveTasks(updated);
+  };
+
   const handleInitializeTasks = async () => {
     try {
       setStep("saving");
@@ -236,6 +243,7 @@ export default function KanbanPage({
                 color={col.color}
                 tasks={tasksByStatus(col.key)}
                 onStatusChange={handleStatusChange}
+                onDeleteTask={handleDeleteTask}
               />
             ))}
           </div>
