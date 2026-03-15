@@ -26,3 +26,4 @@
   - [ ] Mostrar branch tasks e sync
   - [ ] Encerrar com os diferenciais
 - [ ] teste <!--meta:{"cardType":"spike"}-->
+- [ ] fas <!--meta:{"cardType":"story"}-->
