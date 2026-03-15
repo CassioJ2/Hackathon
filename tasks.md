@@ -1,10 +1,10 @@
 # Tasks
 
-- [ ] Finalizar submissao da competicao <!--meta:{"description":"Fechar os materiais e o estado final do projeto para entrega e apresentacao.","priority":"high","labels":["competicao","release","pitch"],"cardType":"milestone","assignee":"CassioJ2"}-->
+- [ ] Finalizar submissao da competicao <!--meta:{"description":"Fechar os materiais e o estado final do projeto para entrega e apresentacao.","priority":"high","labels":["competicao","release","pitch"],"status":"backlog","cardType":"milestone","assignee":"CassioJ2"}-->
   - [ ] Revisar README com screenshots
   - [ ] Validar nome, logo e branding final
   - [ ] Conferir se o repositorio esta limpo para avaliacao
-- [ ] Refinar fluxo de sincronizacao da branch tasks <!--meta:{"description":"Garantir que o fluxo de tarefas fique previsivel, seguro e claro para o time.","priority":"high","labels":["sync","github","tasks-branch"],"cardType":"feature","assignee":"CassioJ2"}-->
+- [ ] Refinar fluxo de sincronizacao da branch tasks <!--meta:{"description":"Garantir que o fluxo de tarefas fique previsivel, seguro e claro para o time.","priority":"high","labels":["sync","github","tasks-branch"],"status":"backlog","cardType":"feature","assignee":"CassioJ2"}-->
   - [ ] Validar comportamento de pull remoto no app
   - [ ] Revisar comportamento de merge em conflito
   - [ ] Confirmar sync de AGENTS.md e TASKS_WORKFLOW.md
@@ -12,7 +12,7 @@
   - [ ] Revisar textos da interface
   - [ ] Conferir legibilidade dos cards
   - [ ] Testar fluxo board -> backlog -> sync
-- [ ] Validar instalador Windows final <!--meta:{"description":"Garantir que o executavel esteja consistente para demonstracao e entrega.","priority":"medium","labels":["release","windows","qa"],"assignee":"CassioJ2"}-->
+- [ ] Validar instalador Windows final <!--meta:{"description":"Garantir que o executavel esteja consistente para demonstracao e entrega.","priority":"medium","labels":["release","windows","qa"],"status":"backlog","assignee":"CassioJ2"}-->
   - [ ] Conferir icone do app
   - [ ] Testar login com GitHub
   - [ ] Testar vinculacao de repositorio local
