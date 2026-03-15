@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,20 +16,39 @@ import styles from "./KanbanPage.module.css";
 import Toast from "../components/Toast";
 import logo from "../logo.svg";
 import { useColumns } from "../context/ColumnsContext";
+import { useFlags } from "../context/FlagsContext";
 import ColumnsManager from "../components/ColumnsManager";
 
-export default function KanbanPage({ activeRepo, onLogout }) {
-  const [tasks, setTasks] = useState([]);
-  const [step, setStep] = useState("loading"); // loading | ready | syncing | error
+export default function KanbanPage({
+  initialTasks = [],
+  initialHasChanges = false,
+  activeRepo,
+  onTasksChange,
+  onDirtyChange,
+  onLogout,
+  onChangeRepo,
+}) {
+  const DEFAULT_BOARD_STATUS = "pending";
+  const [tasks, setTasks] = useState(initialTasks);
+  const [step, setStep] = useState("ready");
   const [error, setError] = useState("");
   const [activeTask, setActiveTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [toast, setToast] = useState(null);
-  const [hasChanges, setHasChanges] = useState(false);
-  const tasksRef = useRef(tasks);
+  const [hasChanges, setHasChanges] = useState(initialHasChanges);
+  const [collaborators, setCollaborators] = useState([]);
+  const [incomingConflict, setIncomingConflict] = useState(null);
+  const [activeView, setActiveView] = useState("board");
+  const [backlogSearch, setBacklogSearch] = useState("");
+  const [backlogPriority, setBacklogPriority] = useState("");
+  const [backlogAssignee, setBacklogAssignee] = useState("");
+  const [backlogLabel, setBacklogLabel] = useState("");
+  const [backlogSort, setBacklogSort] = useState("priority");
+  const tasksRef = useRef(initialTasks);
 
   const { columns } = useColumns();
+  const { allFlags } = useFlags();
   const [showColumnsManager, setShowColumnsManager] = useState(false);
 
   const sensors = useSensors(
@@ -37,8 +56,20 @@ export default function KanbanPage({ activeRepo, onLogout }) {
   );
 
   useEffect(() => {
+    setTasks(initialTasks);
+    tasksRef.current = initialTasks;
+    setStep("ready");
+    setHasChanges(initialHasChanges);
+  }, [initialTasks, initialHasChanges]);
+
+  useEffect(() => {
     tasksRef.current = tasks;
-  }, [tasks]);
+    onTasksChange?.(tasks);
+  }, [tasks, onTasksChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(hasChanges);
+  }, [hasChanges, onDirtyChange]);
 
   useEffect(() => {
     const cleanup = window.electron.on(
@@ -46,6 +77,7 @@ export default function KanbanPage({ activeRepo, onLogout }) {
       (updatedTasks) => {
         setTasks(updatedTasks);
         setHasChanges(false);
+        setIncomingConflict(null);
         setToast({
           message: "Tasks atualizadas pelo GitHub!",
           type: "success",
@@ -53,38 +85,119 @@ export default function KanbanPage({ activeRepo, onLogout }) {
       },
     );
 
-    window.electron
-      .invoke("tasks:init")
-      .then((result) => {
-        if (!result) return;
-        setTasks(result.tasks);
-        setStep("ready");
-      })
-      .catch((err) => {
-        setError(err.message);
-        setStep("error");
-      });
+    const cleanupConflict = window.electron.on(
+      "tasks:remote-conflict",
+      (incomingTasks) => {
+        setIncomingConflict({ tasks: incomingTasks, source: "github" });
+        setToast({
+          message: "Mudanca remota detectada. Escolha manter local ou carregar remoto.",
+          type: "warning",
+        });
+      },
+    );
 
-    return () => cleanup?.();
+    const cleanupLocalUpdate = window.electron.on(
+      "tasks:local-file-update",
+      (updatedTasks) => {
+        setTasks(updatedTasks);
+        setHasChanges(false);
+        setIncomingConflict(null);
+        setToast({
+          message: "Tasks atualizadas pelo arquivo local!",
+          type: "success",
+        });
+      },
+    );
+
+    const cleanupLocalConflict = window.electron.on(
+      "tasks:local-file-conflict",
+      (incomingTasks) => {
+        setIncomingConflict({ tasks: incomingTasks, source: "local" });
+        setToast({
+          message: "Mudanca detectada no tasks.md local. Escolha manter local ou carregar arquivo.",
+          type: "warning",
+        });
+      },
+    );
+
+    return () => {
+      cleanup?.();
+      cleanupConflict?.();
+      cleanupLocalUpdate?.();
+      cleanupLocalConflict?.();
+    };
   }, []);
 
-  // atualiza tasks localmente sem commitar
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCollaborators = async () => {
+      if (!activeRepo?.owner || !activeRepo?.repo) {
+        if (isMounted) {
+          setCollaborators([]);
+        }
+        return;
+      }
+
+      try {
+        const result = await window.electron.invoke("github:repo-collaborators");
+
+        if (isMounted) {
+          setCollaborators(Array.isArray(result) ? result : []);
+        }
+      } catch {
+        if (isMounted) {
+          setCollaborators([]);
+        }
+      }
+    };
+
+    loadCollaborators();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeRepo?.owner, activeRepo?.repo]);
+
+  const collaboratorsByLogin = useMemo(
+    () =>
+      collaborators.reduce((acc, collaborator) => {
+        acc[collaborator.login] = collaborator;
+        return acc;
+      }, {}),
+    [collaborators],
+  );
+
+  const persistTasksLocally = async (updatedTasks, dirty = true) => {
+    try {
+      await window.electron.invoke("tasks:cache", { tasks: updatedTasks, dirty });
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
+  };
+
   const updateTasksLocally = (updatedTasks) => {
     setTasks(updatedTasks);
     setHasChanges(true);
+    setIncomingConflict(null);
+    persistTasksLocally(updatedTasks, true);
   };
 
-  // commit no GitHub — só quando clicar em Sync
   const handleSync = async () => {
     try {
       setStep("syncing");
       setError("");
-      await window.electron.invoke("tasks:save", {
+      const result = await window.electron.invoke("tasks:save", {
         tasks: tasksRef.current,
         commitMessage: "chore: update tasks",
       });
+      if (result?.tasks) {
+        setTasks(result.tasks);
+      }
       setStep("ready");
       setHasChanges(false);
+      setIncomingConflict(null);
       setToast({ message: "Sincronizado com GitHub!", type: "success" });
     } catch (err) {
       setError(err.message);
@@ -123,9 +236,23 @@ export default function KanbanPage({ activeRepo, onLogout }) {
     }
   };
 
-  const handleStatusChange = (taskId, newStatus) => {
+  const handleSubtaskToggle = (taskId, subtaskId) => {
     updateTasksLocally(
-      tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
+      tasks.map((task) => {
+        if (task.id !== taskId) return task;
+
+        return {
+          ...task,
+          subtasks: task.subtasks.map((subtask) =>
+            subtask.id === subtaskId
+              ? {
+                  ...subtask,
+                  status: subtask.status === "done" ? "pending" : "done",
+                }
+              : subtask,
+          ),
+        };
+      }),
     );
   };
 
@@ -146,13 +273,52 @@ export default function KanbanPage({ activeRepo, onLogout }) {
     updateTasksLocally([...tasks, newTask]);
   };
 
+  const handleSendToBoard = (task) => {
+    updateTasksLocally(
+      tasks.map((item) =>
+        item.id === task.id
+          ? { ...item, status: columns[0]?.id || DEFAULT_BOARD_STATUS }
+          : item,
+      ),
+    );
+    setToast({ message: "Task enviada para o board.", type: "success" });
+  };
+
+  const handleMoveToBacklog = (task) => {
+    updateTasksLocally(
+      tasks.map((item) =>
+        item.id === task.id ? { ...item, status: "backlog" } : item,
+      ),
+    );
+    setToast({ message: "Task movida para o backlog.", type: "success" });
+  };
+
   const handleInitializeTasks = async () => {
     try {
       setStep("syncing");
       setError("");
-      const result = await window.electron.invoke("tasks:init", {});
+      const result = await window.electron.invoke("tasks:init", {
+        force: true,
+      });
       setTasks(result.tasks);
+      setHasChanges(true);
+      setIncomingConflict(null);
       setStep("ready");
+      setToast({ message: "Backlog local recriado!", type: "success" });
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
+  };
+
+  const handleOpenTasksFile = async () => {
+    try {
+      setError("");
+      await window.electron.invoke("repo:open-tasks-file");
+      setToast({
+        message: "tasks.md aberto no editor padrao.",
+        type: "success",
+      });
     } catch (err) {
       setError(err.message);
       setStep("error");
@@ -164,7 +330,85 @@ export default function KanbanPage({ activeRepo, onLogout }) {
     onLogout();
   };
 
+  const handleKeepLocal = () => {
+    setIncomingConflict(null);
+    setToast({
+      message: "Mantendo alteracoes locais. Faça sync quando estiver pronto.",
+      type: "warning",
+    });
+  };
+
+  const handleLoadRemote = async () => {
+    if (!incomingConflict) return;
+
+    try {
+      setTasks(incomingConflict.tasks);
+      setHasChanges(false);
+      await persistTasksLocally(incomingConflict.tasks, false);
+      setIncomingConflict(null);
+      setToast({
+        message:
+          incomingConflict.source === "local"
+            ? "Versao do arquivo local carregada no board."
+            : "Versao remota carregada no cache local.",
+        type: "success",
+      });
+    } catch (err) {
+      setError(err.message);
+      setStep("error");
+    }
+  };
+
   const tasksByStatus = (status) => tasks.filter((t) => t.status === status);
+  const backlogTasks = tasks.filter((task) => task.status === "backlog");
+  const filteredBacklogTasks = useMemo(() => {
+    const filtered = backlogTasks.filter((task) => {
+      const query = backlogSearch.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        task.title.toLowerCase().includes(query) ||
+        task.description?.toLowerCase().includes(query);
+      const matchesPriority =
+        !backlogPriority || task.priority === backlogPriority;
+      const matchesAssignee =
+        !backlogAssignee || task.assignee === backlogAssignee;
+      const matchesLabel =
+        !backlogLabel || task.labels?.includes(backlogLabel);
+
+      return (
+        matchesSearch && matchesPriority && matchesAssignee && matchesLabel
+      );
+    });
+
+    const priorityWeight = { high: 0, medium: 1, low: 2, "": 3 };
+
+    return [...filtered].sort((a, b) => {
+      if (backlogSort === "priority") {
+        return (
+          (priorityWeight[a.priority || ""] ?? 9) -
+          (priorityWeight[b.priority || ""] ?? 9)
+        );
+      }
+
+      if (backlogSort === "assignee") {
+        return (a.assignee || "").localeCompare(b.assignee || "");
+      }
+
+      if (backlogSort === "type") {
+        return (a.cardType || "").localeCompare(b.cardType || "");
+      }
+
+      return a.title.localeCompare(b.title);
+    });
+  }, [
+    backlogAssignee,
+    backlogLabel,
+    backlogPriority,
+    backlogSearch,
+    backlogSort,
+    backlogTasks,
+  ]);
+  const storageModeLabel = activeRepo?.localPath ? "Repo local" : "Cache interno";
 
   return (
     <div className={styles.container}>
@@ -173,13 +417,32 @@ export default function KanbanPage({ activeRepo, onLogout }) {
           <img src={logo} width="60" height="60" alt="CodeSprint" />
           <h1 className={styles.appName}>CodeSprint</h1>
           {activeRepo && (
-            <span className={styles.repoBadge}>
-              {activeRepo.owner}/{activeRepo.repo}
-            </span>
+            <>
+              <span className={styles.repoBadge}>
+                {activeRepo.owner}/{activeRepo.repo}
+              </span>
+              <span className={styles.storageBadge}>
+                {storageModeLabel}
+              </span>
+            </>
           )}
         </div>
 
         <div className={styles.headerCenter}>
+          <div className={styles.viewTabs}>
+            <button
+              className={`${styles.viewTab} ${activeView === "board" ? styles.viewTabActive : ""}`}
+              onClick={() => setActiveView("board")}
+            >
+              Board
+            </button>
+            <button
+              className={`${styles.viewTab} ${activeView === "backlog" ? styles.viewTabActive : ""}`}
+              onClick={() => setActiveView("backlog")}
+            >
+              Backlog
+            </button>
+          </div>
           <button
             className={styles.btnNewTask}
             onClick={() => setShowModal(true)}
@@ -188,9 +451,18 @@ export default function KanbanPage({ activeRepo, onLogout }) {
           </button>
           <button
             className={styles.btnFlags}
+            onClick={handleOpenTasksFile}
+          >
+            Abrir tasks.md
+          </button>
+          <button className={styles.btnFlags} onClick={onChangeRepo}>
+            Trocar repo
+          </button>
+          <button
+            className={styles.btnFlags}
             onClick={() => setShowColumnsManager(true)}
           >
-            ⚙ Colunas
+            Colunas
           </button>
         </div>
 
@@ -208,7 +480,7 @@ export default function KanbanPage({ activeRepo, onLogout }) {
                 <LoadingSpinner size="sm" /> Sincronizando...
               </>
             ) : hasChanges ? (
-              "↑ Sync"
+              "Sync"
             ) : (
               "Sincronizado"
             )}
@@ -219,6 +491,26 @@ export default function KanbanPage({ activeRepo, onLogout }) {
         </div>
       </header>
 
+      {incomingConflict && (
+        <div className={styles.conflictBar}>
+          <div className={styles.conflictText}>
+            {incomingConflict.source === "local"
+              ? "O arquivo tasks.md local mudou fora do app e voce tem mudancas locais pendentes."
+              : "Existe uma versao mais nova no GitHub e voce tem mudancas locais pendentes."}
+          </div>
+          <div className={styles.conflictActions}>
+            <button className={styles.btnFlags} onClick={handleKeepLocal}>
+              Manter local
+            </button>
+            <button className={styles.btnPrimary} onClick={handleLoadRemote}>
+              {incomingConflict.source === "local"
+                ? "Carregar arquivo"
+                : "Carregar remoto"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {step === "loading" ? (
         <div className={styles.loadingWrap}>
           <LoadingSpinner />
@@ -226,23 +518,39 @@ export default function KanbanPage({ activeRepo, onLogout }) {
         </div>
       ) : tasks.length === 0 ? (
         <div className={styles.emptyState}>
-          <h2 className={styles.emptyTitle}>Nenhum backlog encontrado</h2>
+          <h2 className={styles.emptyTitle}>Nenhuma task no backlog</h2>
           <p className={styles.emptyText}>
-            Esse repositório ainda não tem um <code>tasks.md</code>. Você pode
-            criar um backlog inicial agora e começar a testar o fluxo completo.
+            Esse repositorio esta sem tasks no momento. Voce pode criar uma task
+            nova agora ou recriar o <code>tasks.md</code> inicial com o modelo
+            padrao. Se preferir, abra o arquivo no VS Code e edite por la com o
+            app aberto.
           </p>
-          <button
-            className={styles.btnPrimary}
-            onClick={handleInitializeTasks}
-            disabled={step === "syncing"}
-          >
-            {step === "syncing"
-              ? "Criando backlog..."
-              : "Criar tasks.md inicial"}
-          </button>
+          <div className={styles.emptyActions}>
+            <button
+              className={styles.btnNewTask}
+              onClick={() => setShowModal(true)}
+            >
+              + Nova task
+            </button>
+            <button
+              className={styles.btnPrimary}
+              onClick={handleInitializeTasks}
+              disabled={step === "syncing"}
+            >
+              {step === "syncing"
+                ? "Recriando backlog..."
+                : "Recriar tasks.md inicial"}
+            </button>
+            <button
+              className={styles.btnFlags}
+              onClick={handleOpenTasksFile}
+            >
+              Abrir tasks.md
+            </button>
+          </div>
           {step === "error" && <p className={styles.emptyError}>{error}</p>}
         </div>
-      ) : (
+      ) : activeView === "board" ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -258,28 +566,133 @@ export default function KanbanPage({ activeRepo, onLogout }) {
                 title={col.label}
                 color={col.color}
                 tasks={tasksByStatus(col.id)}
-                onStatusChange={handleStatusChange}
+                collaborators={collaboratorsByLogin}
+                onSubtaskToggle={handleSubtaskToggle}
                 onDeleteTask={handleDeleteTask}
                 onEditTask={handleEditTask}
+                primaryActionLabel="Mover para backlog"
+                onPrimaryAction={handleMoveToBacklog}
               />
             ))}
           </div>
           <DragOverlay>
             {activeTask && (
-              <TaskCard task={activeTask} onStatusChange={() => {}} />
+              <TaskCard
+                task={activeTask}
+                collaborators={collaboratorsByLogin}
+                onSubtaskToggle={() => {}}
+              />
             )}
           </DragOverlay>
         </DndContext>
+      ) : (
+        <div className={styles.backlogWrap}>
+          <div className={styles.backlogHeader}>
+            <h2 className={styles.backlogTitle}>Backlog</h2>
+            <div className={styles.backlogHeaderActions}>
+              <span className={styles.backlogCount}>
+                {filteredBacklogTasks.length}/{backlogTasks.length} items
+              </span>
+              <button className={styles.btnFlags} onClick={handleOpenTasksFile}>
+                Abrir tasks.md
+              </button>
+            </div>
+          </div>
+          <div className={styles.backlogFilters}>
+            <input
+              className={styles.backlogInput}
+              type="text"
+              placeholder="Buscar por titulo ou descricao"
+              value={backlogSearch}
+              onChange={(e) => setBacklogSearch(e.target.value)}
+            />
+            <select
+              className={styles.backlogSelect}
+              value={backlogPriority}
+              onChange={(e) => setBacklogPriority(e.target.value)}
+            >
+              <option value="">Todas prioridades</option>
+              <option value="high">Alta</option>
+              <option value="medium">Media</option>
+              <option value="low">Baixa</option>
+            </select>
+            <select
+              className={styles.backlogSelect}
+              value={backlogAssignee}
+              onChange={(e) => setBacklogAssignee(e.target.value)}
+            >
+              <option value="">Todos responsaveis</option>
+              {collaborators.map((collaborator) => (
+                <option key={collaborator.login} value={collaborator.login}>
+                  {collaborator.name || collaborator.login}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.backlogSelect}
+              value={backlogLabel}
+              onChange={(e) => setBacklogLabel(e.target.value)}
+            >
+              <option value="">Todas etiquetas</option>
+              {allFlags.map((flag) => (
+                <option key={flag.id} value={flag.id}>
+                  {flag.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.backlogSelect}
+              value={backlogSort}
+              onChange={(e) => setBacklogSort(e.target.value)}
+            >
+              <option value="priority">Ordenar por prioridade</option>
+              <option value="assignee">Ordenar por responsavel</option>
+              <option value="type">Ordenar por tipo</option>
+              <option value="title">Ordenar por titulo</option>
+            </select>
+          </div>
+          {backlogTasks.length === 0 ? (
+            <div className={styles.backlogEmpty}>
+              Nenhuma task no backlog. Crie uma nova task aqui ou mova algo do fluxo para backlog.
+            </div>
+          ) : filteredBacklogTasks.length === 0 ? (
+            <div className={styles.backlogEmpty}>
+              Nenhuma task corresponde aos filtros atuais.
+            </div>
+          ) : (
+            <div className={styles.backlogList}>
+              {filteredBacklogTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  collaborators={collaboratorsByLogin}
+                  onSubtaskToggle={handleSubtaskToggle}
+                  onDelete={handleDeleteTask}
+                  onEdit={handleEditTask}
+                  primaryActionLabel="Enviar para board"
+                  onPrimaryAction={handleSendToBoard}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {showModal && (
         <TaskModal
+          activeRepo={activeRepo}
+          defaultStatus={
+            activeView === "backlog"
+              ? "backlog"
+              : columns[0]?.id || DEFAULT_BOARD_STATUS
+          }
           onSave={handleCreateTask}
           onClose={() => setShowModal(false)}
         />
       )}
       {editingTask && (
         <TaskModal
+          activeRepo={activeRepo}
           task={editingTask}
           onSave={handleSaveEdit}
           onClose={() => setEditingTask(null)}

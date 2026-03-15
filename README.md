@@ -1,73 +1,148 @@
-# React + TypeScript + Vite
+# CodeSprint
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CodeSprint e uma plataforma desktop criada para tornar o planejamento de software mais visivel, colaborativo e conectado ao fluxo real de desenvolvimento.
 
-Currently, two official plugins are available:
+Ao combinar board visual, area de backlog, integracao com GitHub e uma fonte de verdade baseada em markdown, o CodeSprint ajuda equipes a sairem de um planejamento espalhado para uma execucao mais clara, organizada e eficiente.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Visao Geral do Projeto
 
-## React Compiler
+Equipes de software costumam dividir o planejamento entre varios lugares desconectados: issues no GitHub, anotacoes pessoais, chats, boards estaticos e arquivos locais do projeto. Essa fragmentacao gera perda de contexto, esforco duplicado e pouca visibilidade sobre o que realmente precisa ser feito.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+O CodeSprint foi criado para centralizar esse processo em uma experiencia pratica, visual e proxima do ambiente real de desenvolvimento.
 
-## Expanding the ESLint configuration
+Com o CodeSprint, as equipes podem:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- conectar uma conta do GitHub
+- selecionar um repositorio
+- vincular o clone local real no computador
+- gerenciar tarefas em visualizacoes de backlog e board
+- editar o mesmo arquivo `tasks.md` pelo app ou pelo VS Code
+- sincronizar alteracoes com o GitHub quando necessario
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Funcionalidades Principais
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- autenticacao com GitHub
+- selecao de repositorio e vinculacao com pasta local
+- gestao de tarefas em fluxo local-first
+- atualizacao em tempo real quando o `tasks.md` e alterado fora do app
+- visualizacao em board estilo Kanban
+- visualizacao em backlog
+- suporte a metadados de tarefa, como responsavel, prioridade, etiquetas, descricao e subtarefas
+- atribuicao de responsaveis com base nos colaboradores do GitHub
+- sincronizacao manual entre trabalho local e repositorio remoto
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## O Problema
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Ferramentas de planejamento geralmente ficam distantes do codigo que deveriam apoiar.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Isso gera problemas frequentes:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- o planejamento fica desconectado da execucao
+- as equipes perdem visibilidade entre backlog e trabalho em andamento
+- atualizacoes dependem de repeticao manual entre ferramentas
+- os desenvolvedores trabalham no repositorio, mas o planejamento vive em outro lugar
+
+O CodeSprint resolve isso ao transformar o proprio repositorio em parte do fluxo de planejamento.
+
+## A Solucao
+
+No centro da plataforma existe uma ideia simples: o backlog do projeto nao deve ficar isolado do proprio projeto.
+
+O CodeSprint transforma o `tasks.md` em uma camada colaborativa de planejamento conectada tanto a interface quanto ao repositorio. O resultado e um fluxo em que as tarefas podem ser criadas, revisadas, atribuidas, reorganizadas e sincronizadas sem perder portabilidade nem controle.
+
+## Como Funciona
+
+1. O usuario conecta uma conta do GitHub e seleciona um repositorio.
+2. A plataforma vincula esse repositorio ao seu clone local real.
+3. O CodeSprint le e escreve tarefas por meio de um arquivo compartilhado `tasks.md`.
+4. As tarefas podem ser gerenciadas visualmente em visualizacoes de backlog e board.
+5. O mesmo arquivo tambem pode ser editado diretamente no ambiente de desenvolvimento.
+6. A sincronizacao com o GitHub acontece quando o usuario decide, preservando um fluxo local-first.
+
+Essa abordagem mantem o projeto transparente, portavel e facil de integrar ao fluxo de trabalho real de desenvolvimento.
+
+## Screenshots
+
+### Tela de Login
+
+`[Add screenshot here]`
+
+### Selecao de Repositorio
+
+`[Add screenshot here]`
+
+### Visualizacao de Backlog
+
+`[Add screenshot here]`
+
+### Visualizacao de Board
+
+`[Add screenshot here]`
+
+### Detalhes da Tarefa / Fluxo de Edicao
+
+`[Add screenshot here]`
+
+## Stack Tecnica
+
+- Electron
+- React
+- JavaScript
+- GitHub API
+- persistencia de tarefas baseada em markdown
+
+## Diferenciais
+
+O CodeSprint nao e apenas mais um board de tarefas. Seu principal diferencial esta na combinacao entre:
+
+- gestao visual de tarefas
+- integracao real com repositorios
+- fluxo local-first
+- sincronizacao com GitHub
+- portabilidade baseada em markdown
+
+Isso torna a plataforma especialmente relevante para equipes tecnicas que ja trabalham dentro de repositorios e querem manter o planejamento proximo do codigo, e nao separado dele.
+
+## Exemplo de Uso
+
+Uma equipe pode usar o CodeSprint para:
+
+- estruturar demandas em um backlog
+- revisar tudo em formato visual
+- mover itens selecionados para colunas de execucao
+- atribuir tarefas com base nos colaboradores do GitHub
+- atualizar o arquivo markdown do projeto sem prender o fluxo a uma plataforma proprietaria
+
+## Estrutura do Projeto
+
+A aplicacao esta organizada em torno de:
+
+- processo principal do Electron para integracoes nativas e IPC
+- interface renderer para as experiencias de backlog e board
+- logica de parser para leitura e escrita de `tasks.md`
+- integracao com GitHub para autenticacao, repositorios, colaboradores e sincronizacao
+
+## Evolucoes Futuras
+
+- empacotamento de release mais completo
+- fluxos de colaboracao mais amplos
+- mais relatorios e filtros visuais
+- melhor experiencia de onboarding
+- novos fluxos de automacao de tarefas
+
+## Contexto da Competicao
+
+Este repositorio foi organizado para apresentar o produto de forma clara para avaliacao.
+
+O foco da submissao esta em:
+
+- visao de produto
+- experiencia desktop funcional
+- fluxo integrado com GitHub
+- uso pratico de markdown como camada colaborativa de planejamento
+
+## Por Que Isso Importa
+
+O CodeSprint propoe uma ponte mais natural entre planejamento e implementacao.
+
+Em vez de forcar as equipes a escolher entre organizacao visual e fluxo baseado em repositorio, a plataforma conecta os dois lados. Isso cria um processo mais transparente, melhora a colaboracao e mantem a gestao do projeto perto de onde o trabalho realmente acontece.

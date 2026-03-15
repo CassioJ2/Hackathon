@@ -11,9 +11,12 @@ export default function KanbanColumn({
   tasks,
   color,
   columnId,
-  onStatusChange,
+  collaborators,
+  onSubtaskToggle,
   onDeleteTask,
   onEditTask,
+  primaryActionLabel,
+  onPrimaryAction,
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnId });
 
@@ -35,9 +38,12 @@ export default function KanbanColumn({
             <SortableTaskCard
               key={task.id}
               task={task}
-              onStatusChange={onStatusChange}
+              collaborators={collaborators}
+              onSubtaskToggle={onSubtaskToggle}
               onDelete={onDeleteTask}
               onEdit={onEditTask}
+              primaryActionLabel={primaryActionLabel}
+              onPrimaryAction={onPrimaryAction}
             />
           ))}
           {tasks.length === 0 && (

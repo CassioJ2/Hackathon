@@ -1,4 +1,4 @@
-import { GitHubApiError } from './errors'
+﻿import { GitHubApiError } from './errors'
 import { fetchWithTimeout } from './http'
 
 /**
@@ -7,6 +7,7 @@ import { fetchWithTimeout } from './http'
  */
 
 const API = 'https://api.github.com'
+const userProfileCache = new Map()
 
 function headers(token) {
     return {
@@ -30,6 +31,26 @@ async function readGitHubError(res, fallbackMessage) {
             code: null
         }
     }
+}
+
+async function getUserProfile(token, login) {
+    const cacheKey = `${token}:${login}`
+    if (userProfileCache.has(cacheKey)) {
+        return userProfileCache.get(cacheKey)
+    }
+
+    const res = await fetchWithTimeout(`${API}/users/${login}`, {
+        headers: headers(token)
+    })
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `getUserProfile failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
+    const profile = await res.json()
+    userProfileCache.set(cacheKey, profile)
+    return profile
 }
 
 /**
@@ -56,6 +77,51 @@ export async function getRepos(token) {
         private: repo.private,
         updatedAt: repo.updated_at
     }))
+}
+
+/**
+ * Lista colaboradores do repositorio.
+ * @param {string} token
+ * @param {string} owner
+ * @param {string} repo
+ * @returns {Promise<Array<{ id: number, login: string, name: string, avatarUrl: string, profileUrl: string }>>}
+ */
+export async function getRepoCollaborators(token, owner, repo) {
+    const res = await fetchWithTimeout(`${API}/repos/${owner}/${repo}/collaborators?per_page=100`, {
+        headers: headers(token)
+    })
+
+    if (!res.ok) {
+        const error = await readGitHubError(res, `getRepoCollaborators failed: ${res.status}`)
+        throw new GitHubApiError(error.message, { status: res.status, code: error.code })
+    }
+
+    const collaborators = await res.json()
+
+    const enrichedCollaborators = await Promise.all(
+        collaborators.map(async (user) => {
+            try {
+                const profile = await getUserProfile(token, user.login)
+                return {
+                    id: user.id,
+                    login: user.login,
+                    name: profile.name || '',
+                    avatarUrl: user.avatar_url,
+                    profileUrl: user.html_url
+                }
+            } catch {
+                return {
+                    id: user.id,
+                    login: user.login,
+                    name: '',
+                    avatarUrl: user.avatar_url,
+                    profileUrl: user.html_url
+                }
+            }
+        })
+    )
+
+    return enrichedCollaborators
 }
 
 /**

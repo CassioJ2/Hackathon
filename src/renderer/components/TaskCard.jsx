@@ -1,11 +1,11 @@
-import styles from "./TaskCard.module.css";
+﻿import styles from "./TaskCard.module.css";
 import { useFlags } from "../context/FlagsContext";
 import { useCardTypes } from "../context/CardTypesContext";
 import { useColumns } from "../context/ColumnsContext";
 
 const PRIORITY_COLORS = {
   low: { color: "#4F4F4F", label: "Baixa" },
-  medium: { color: "#00A676", label: "Média" },
+  medium: { color: "#00A676", label: "Media" },
   high: { color: "#E85D24", label: "Alta" },
 };
 
@@ -27,7 +27,15 @@ const TrashIcon = () => (
   </svg>
 );
 
-export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
+export default function TaskCard({
+  task,
+  collaborators = {},
+  onSubtaskToggle,
+  onDelete,
+  onEdit,
+  primaryActionLabel,
+  onPrimaryAction,
+}) {
   const { allFlags } = useFlags();
   const { allTypes } = useCardTypes();
   const { columns } = useColumns();
@@ -40,15 +48,27 @@ export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
   const subtasksTotal = task.subtasks?.length ?? 0;
   const taskLabels = allFlags.filter((f) => task.labels?.includes(f.id));
   const priority = task.priority ? PRIORITY_COLORS[task.priority] : null;
+  const assignee = task.assignee ? collaborators[task.assignee] : null;
+  const assigneeName = assignee?.name?.trim() || task.assignee || "";
+  const assigneeLogin = assignee?.login || task.assignee || "";
 
   const handleDelete = (e) => {
     e.stopPropagation();
     onDelete?.(task.id);
   };
 
-  const handleActionClick = (e, callback) => {
+  const handleProfileClick = (e) => {
     e.stopPropagation();
-    callback();
+  };
+
+  const handleSubtaskClick = (e, subtaskId) => {
+    e.stopPropagation();
+    onSubtaskToggle?.(task.id, subtaskId);
+  };
+
+  const handlePrimaryAction = (e) => {
+    e.stopPropagation();
+    onPrimaryAction?.(task);
   };
 
   return (
@@ -57,17 +77,15 @@ export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
       style={{ "--card-color": statusColor }}
       onClick={() => onEdit?.(task)}
     >
-      {currentType && (
-        <span
-          className={styles.cardTypeBadge}
-          style={{ "--type-color": currentType.color }}
-        >
-          {currentType.icon} {currentType.name}
-        </span>
-      )}
-
-      <div className={styles.titleRow}>
-        <p className={styles.title}>{task.title}</p>
+      <div className={styles.headerRow}>
+        {currentType && (
+          <span
+            className={styles.cardTypeBadge}
+            style={{ "--type-color": currentType.color }}
+          >
+            {currentType.icon} {currentType.name}
+          </span>
+        )}
         <button
           className={styles.btnDelete}
           onClick={handleDelete}
@@ -77,33 +95,94 @@ export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
         </button>
       </div>
 
-      {(priority || taskLabels.length > 0) && (
-        <div className={styles.flags}>
-          {priority && (
+      <div className={styles.titleGroup}>
+        <p className={styles.title}>{task.title}</p>
+        {task.description && (
+          <p className={styles.description}>{task.description}</p>
+        )}
+      </div>
+
+      {task.assignee && (
+        <div className={styles.infoBlock}>
+          <span className={styles.infoLabel}>Assignee:</span>
+          {assignee?.profileUrl ? (
+            <a
+              className={styles.assigneeLink}
+              href={assignee.profileUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleProfileClick}
+            >
+              {assignee?.avatarUrl ? (
+                <img
+                  className={styles.assigneeAvatar}
+                  src={assignee.avatarUrl}
+                  alt={assigneeName}
+                />
+              ) : (
+                <div className={styles.assigneeFallback}>
+                  {assigneeName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className={styles.assigneeText}>
+                <span className={styles.assigneeName}>{assigneeName}</span>
+                <span className={styles.assigneeLogin}>@{assigneeLogin}</span>
+              </div>
+            </a>
+          ) : (
+            <div className={styles.assigneeRow}>
+              {assignee?.avatarUrl ? (
+                <img
+                  className={styles.assigneeAvatar}
+                  src={assignee.avatarUrl}
+                  alt={assigneeName}
+                />
+              ) : (
+                <div className={styles.assigneeFallback}>
+                  {assigneeName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className={styles.assigneeText}>
+                <span className={styles.assigneeName}>{assigneeName}</span>
+                <span className={styles.assigneeLogin}>@{assigneeLogin}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {priority && (
+        <div className={styles.infoBlock}>
+          <span className={styles.infoLabel}>Prioridade:</span>
+          <div className={styles.valueList}>
             <span
               className={styles.flag}
               style={{ "--flag-color": priority.color }}
             >
               {priority.label}
             </span>
-          )}
-          {taskLabels.map((f) => (
-            <span
-              key={f.id}
-              className={styles.flag}
-              style={{
-                "--flag-color": f.color,
-                fontWeight: f.bold ? 600 : 400,
-              }}
-            >
-              {f.name}
-            </span>
-          ))}
+          </div>
         </div>
       )}
 
-      {task.description && (
-        <p className={styles.description}>{task.description}</p>
+      {taskLabels.length > 0 && (
+        <div className={styles.infoBlock}>
+          <span className={styles.infoLabel}>Etiquetas:</span>
+          <div className={styles.valueList}>
+            {taskLabels.map((f) => (
+              <span
+                key={f.id}
+                className={styles.flag}
+                style={{
+                  "--flag-color": f.color,
+                  fontWeight: f.bold ? 600 : 400,
+                }}
+              >
+                {f.name}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
       {subtasksTotal > 0 && (
@@ -119,36 +198,38 @@ export default function TaskCard({ task, onStatusChange, onDelete, onEdit }) {
           </span>
           <div className={styles.subtaskList}>
             {task.subtasks.map((sub) => (
-              <div key={sub.id} className={styles.subtaskItem}>
+              <button
+                key={sub.id}
+                className={styles.subtaskButton}
+                type="button"
+                onClick={(e) => handleSubtaskClick(e, sub.id)}
+              >
                 <span
-                  className={`${styles.subtaskDot} ${sub.status === "done" ? styles.subtaskDotDone : ""}`}
-                />
+                  className={`${styles.subtaskCheckbox} ${sub.status === "done" ? styles.subtaskCheckboxDone : ""}`}
+                  aria-hidden="true"
+                >
+                  {sub.status === "done" ? "✓" : ""}
+                </span>
                 <span
                   className={`${styles.subtaskTitle} ${sub.status === "done" ? styles.subtaskTitleDone : ""}`}
                 >
                   {sub.title}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      <div className={styles.actions}>
-        {columns
-          .filter((col) => col.id !== task.status)
-          .map((col) => (
-            <button
-              key={col.id}
-              className={styles.btnAction}
-              onClick={(e) =>
-                handleActionClick(e, () => onStatusChange(task.id, col.id))
-              }
-            >
-              {col.label}
-            </button>
-          ))}
-      </div>
+      {primaryActionLabel && onPrimaryAction && (
+        <button
+          type="button"
+          className={styles.primaryAction}
+          onClick={handlePrimaryAction}
+        >
+          {primaryActionLabel}
+        </button>
+      )}
     </div>
   );
 }

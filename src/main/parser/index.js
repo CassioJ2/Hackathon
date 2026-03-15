@@ -1,13 +1,20 @@
-/**
- * Parser de Markdown ↔ JSON
+﻿/**
+ * Parser de Markdown <-> JSON
  *
  * Formato suportado:
  * - [ ] Task pendente
- * - [x] Task concluída
+ * - [x] Task concluida
  * - [/] Task em andamento
  *   - [ ] Subtask
- *   - [x] Subtask concluída
+ *   - [x] Subtask concluida
+ *
+ * Metadados extras (description, priority, labels, cardType, assignee) sao
+ * armazenados como um comentario HTML inline no final da linha da task:
+ * - [ ] Task title <!--meta:{"priority":"high","labels":["bug"]}-->
  */
+
+const META_PREFIX = '<!--meta:'
+const META_SUFFIX = '-->'
 
 let taskCounter = 0
 
@@ -27,11 +34,32 @@ function checkboxFromStatus(status) {
     return ' '
 }
 
-/**
- * Converte markdown em array de tasks estruturadas.
- * @param {string} markdown
- * @returns {Array<Task>}
- */
+function extractMeta(raw) {
+    const idx = raw.indexOf(META_PREFIX)
+    if (idx === -1) return { title: raw.trim(), meta: {} }
+
+    const title = raw.slice(0, idx).trim()
+    const end = raw.lastIndexOf(META_SUFFIX)
+    const metaStr = raw.slice(idx + META_PREFIX.length, end)
+    try {
+        return { title, meta: JSON.parse(metaStr) }
+    } catch {
+        return { title, meta: {} }
+    }
+}
+
+function buildMetaSuffix(task) {
+    const meta = {}
+    if (task.description) meta.description = task.description
+    if (task.priority) meta.priority = task.priority
+    if (task.labels?.length) meta.labels = task.labels
+    if (task.status && !['pending', 'in_progress', 'done'].includes(task.status)) meta.status = task.status
+    if (task.cardType && task.cardType !== 'task') meta.cardType = task.cardType
+    if (task.assignee) meta.assignee = task.assignee
+    if (Object.keys(meta).length === 0) return ''
+    return ` ${META_PREFIX}${JSON.stringify(meta)}${META_SUFFIX}`
+}
+
 export function parse(markdown) {
     taskCounter = 0
     const lines = markdown.split('\n')
@@ -39,20 +67,24 @@ export function parse(markdown) {
     let currentTask = null
 
     for (const line of lines) {
-        // Task principal (sem indentação)
         const taskMatch = line.match(/^- \[([x /])\] (.+)$/)
         if (taskMatch) {
+            const { title, meta } = extractMeta(taskMatch[2])
             currentTask = {
                 id: generateId(),
-                title: taskMatch[2].trim(),
-                status: statusFromCheckbox(taskMatch[1]),
+                title,
+                status: meta.status || statusFromCheckbox(taskMatch[1]),
+                description: meta.description || '',
+                priority: meta.priority || '',
+                labels: meta.labels || [],
+                cardType: meta.cardType || 'task',
+                assignee: meta.assignee || '',
                 subtasks: []
             }
             tasks.push(currentTask)
             continue
         }
 
-        // Subtask (com indentação de 2+ espaços)
         const subtaskMatch = line.match(/^ {2,}- \[([x /])\] (.+)$/)
         if (subtaskMatch && currentTask) {
             currentTask.subtasks.push({
@@ -66,16 +98,12 @@ export function parse(markdown) {
     return tasks
 }
 
-/**
- * Converte array de tasks de volta para markdown.
- * @param {Array<Task>} tasks
- * @returns {string}
- */
 export function stringify(tasks) {
     const lines = ['# Tasks', '']
 
     for (const task of tasks) {
-        lines.push(`- [${checkboxFromStatus(task.status)}] ${task.title}`)
+        const metaSuffix = buildMetaSuffix(task)
+        lines.push(`- [${checkboxFromStatus(task.status)}] ${task.title}${metaSuffix}`)
         for (const sub of task.subtasks || []) {
             lines.push(`  - [${checkboxFromStatus(sub.status)}] ${sub.title}`)
         }

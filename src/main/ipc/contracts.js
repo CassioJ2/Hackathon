@@ -1,5 +1,11 @@
+import { syncLocalWatcherSnapshot } from '../watcher/poller'
+
 function getClientId(env) {
-    const clientId = env.GITHUB_CLIENT_ID?.trim()
+    const embeddedClientId =
+        typeof __EMBEDDED_GITHUB_CLIENT_ID__ !== 'undefined'
+            ? __EMBEDDED_GITHUB_CLIENT_ID__
+            : ''
+    const clientId = env.GITHUB_CLIENT_ID?.trim() || embeddedClientId?.trim()
 
     if (!clientId) {
         throw new Error('Missing GITHUB_CLIENT_ID. Configure it before starting GitHub login.')
@@ -32,6 +38,21 @@ function isShaConflict(error) {
     return error?.status === 409 || error?.status === 422
 }
 
+function repoKey({ owner, repo }) {
+    return `${owner}/${repo}`
+}
+
+function getRepoDirty(store, activeRepo) {
+    const dirtyRepos = store.get('dirtyRepos') || {}
+    return !!dirtyRepos[repoKey(activeRepo)]
+}
+
+function setRepoDirty(store, activeRepo, dirty) {
+    const dirtyRepos = { ...(store.get('dirtyRepos') || {}) }
+    dirtyRepos[repoKey(activeRepo)] = dirty
+    store.set('dirtyRepos', dirtyRepos)
+}
+
 export function createIpcHandlers({
     env,
     mainWindow,
@@ -39,10 +60,18 @@ export function createIpcHandlers({
     startDeviceFlow,
     pollForToken,
     getRepos,
+    getRepoCollaborators,
     getFile,
     updateFile,
     parse,
     stringify,
+    readLocalTasksMarkdown = async () => null,
+    writeLocalTasksMarkdown = async () => {},
+    readRepoTasksMarkdown = async () => null,
+    writeRepoTasksMarkdown = async () => {},
+    pickLocalRepoPath = async () => null,
+    openTasksFile = async () => ({ success: false }),
+    validateLocalRepoPath = async () => ({ valid: true }),
     startPoller,
     stopPoller,
     createInitialTasksMarkdown
@@ -91,59 +120,115 @@ export function createIpcHandlers({
             return getRepos(token)
         },
 
-        'tasks:load': async (_, { owner, repo }) => {
+        'github:repo-collaborators': async (_, payload = {}) => {
             const token = requireAuth(store)
+            const activeRepo = requireActiveRepo(store, payload.repo)
+            const { owner, repo } = activeRepo
 
-            store.set('activeRepo', { owner, repo })
+            return getRepoCollaborators(token, owner, repo)
+        },
+
+        'repo:pick-local-path': async () => {
+            return pickLocalRepoPath()
+        },
+
+        'repo:open-tasks-file': async () => {
+            const activeRepo = requireActiveRepo(store)
+            return openTasksFile(activeRepo)
+        },
+
+        'repo:validate-local-path': async (_, { owner, repo, localPath }) => {
+            return validateLocalRepoPath(localPath, owner, repo)
+        },
+
+        'tasks:load': async (_, { owner, repo, localPath }) => {
+            const token = requireAuth(store)
+            const activeRepo = { owner, repo, localPath: localPath || null }
+
+            store.set('activeRepo', activeRepo)
             startPoller(mainWindow)
+
+            const repoMarkdown = await readRepoTasksMarkdown(activeRepo.localPath)
+            if (repoMarkdown) {
+                syncLocalWatcherSnapshot(repoMarkdown)
+                try {
+                    const remoteFile = await getFile(token, owner, repo, 'tasks.md')
+                    store.set('tasksSha', remoteFile?.sha || null)
+                } catch {
+                    store.set('tasksSha', null)
+                }
+
+                return parse(repoMarkdown)
+            }
+
+            const localMarkdown = await readLocalTasksMarkdown(owner, repo)
+            if (localMarkdown) {
+                try {
+                    const remoteFile = await getFile(token, owner, repo, 'tasks.md')
+                    store.set('tasksSha', remoteFile?.sha || null)
+                } catch {
+                    store.set('tasksSha', null)
+                }
+
+                return parse(localMarkdown)
+            }
 
             const file = await getFile(token, owner, repo, 'tasks.md')
 
             if (!file) {
                 store.set('tasksSha', null)
+                setRepoDirty(store, activeRepo, false)
                 return []
             }
 
             store.set('tasksSha', file.sha)
+            await writeLocalTasksMarkdown(owner, repo, file.content)
+            await writeRepoTasksMarkdown(activeRepo.localPath, file.content)
+            syncLocalWatcherSnapshot(file.content)
+            setRepoDirty(store, activeRepo, false)
             return parse(file.content)
         },
 
         'tasks:init': async (_, payload = {}) => {
-            const token = requireAuth(store)
             const activeRepo = requireActiveRepo(store, payload.repo)
             const { owner, repo } = activeRepo
-            const existingFile = await getFile(token, owner, repo, 'tasks.md')
 
-            store.set('activeRepo', { owner, repo })
+            store.set('activeRepo', activeRepo)
             startPoller(mainWindow)
 
-            if (existingFile) {
-                store.set('tasksSha', existingFile.sha)
+            const localMarkdown = await readLocalTasksMarkdown(owner, repo)
+            if (localMarkdown && !payload.force) {
                 return {
                     created: false,
-                    sha: existingFile.sha,
-                    tasks: parse(existingFile.content)
+                    sha: store.get('tasksSha'),
+                    tasks: parse(localMarkdown)
                 }
             }
 
             const markdown = createInitialTasksMarkdown()
-            const result = await updateFile(
-                token,
-                owner,
-                repo,
-                'tasks.md',
-                markdown,
-                null,
-                payload.commitMessage || 'chore: initialize tasks'
-            )
-
-            store.set('tasksSha', result.sha)
+            await writeLocalTasksMarkdown(owner, repo, markdown)
+            await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
+            syncLocalWatcherSnapshot(markdown)
+            setRepoDirty(store, activeRepo, true)
 
             return {
                 created: true,
-                sha: result.sha,
+                sha: store.get('tasksSha'),
                 tasks: parse(markdown)
             }
+        },
+
+        'tasks:cache': async (_, { tasks, dirty = true }) => {
+            const activeRepo = requireActiveRepo(store)
+            const { owner, repo } = activeRepo
+            const markdown = stringify(tasks)
+
+            await writeLocalTasksMarkdown(owner, repo, markdown)
+            await writeRepoTasksMarkdown(activeRepo.localPath, markdown)
+            syncLocalWatcherSnapshot(markdown)
+            setRepoDirty(store, activeRepo, dirty)
+
+            return { success: true }
         },
 
         'tasks:save': async (_, { tasks, commitMessage }) => {
@@ -151,17 +236,37 @@ export function createIpcHandlers({
             const activeRepo = requireActiveRepo(store)
             const { owner, repo } = activeRepo
             const repoKey = `${owner}/${repo}`
+            const localMarkdown = stringify(tasks)
+
+            await writeLocalTasksMarkdown(owner, repo, localMarkdown)
+            await writeRepoTasksMarkdown(activeRepo.localPath, localMarkdown)
+            syncLocalWatcherSnapshot(localMarkdown)
+            setRepoDirty(store, activeRepo, true)
 
             return enqueueRepoSave(repoKey, async () => {
                 const sha = store.get('tasksSha')
-                const markdown = stringify(tasks)
                 const message = commitMessage || 'chore: update tasks'
 
                 try {
-                    const result = await updateFile(token, owner, repo, 'tasks.md', markdown, sha, message)
+                    const result = await updateFile(token, owner, repo, 'tasks.md', localMarkdown, sha, message)
                     store.set('tasksSha', result.sha)
 
-                    return { success: true, sha: result.sha }
+                    const latestFile = await getFile(token, owner, repo, 'tasks.md')
+
+                    if (latestFile) {
+                        store.set('tasksSha', latestFile.sha)
+                        await writeLocalTasksMarkdown(owner, repo, latestFile.content)
+                        await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
+                        syncLocalWatcherSnapshot(latestFile.content)
+                        setRepoDirty(store, activeRepo, false)
+                        return {
+                            success: true,
+                            sha: latestFile.sha,
+                            tasks: parse(latestFile.content)
+                        }
+                    }
+
+                    return { success: true, sha: result.sha, tasks }
                 } catch (error) {
                     if (!isShaConflict(error)) {
                         throw error
@@ -171,7 +276,14 @@ export function createIpcHandlers({
 
                     if (latestFile) {
                         store.set('tasksSha', latestFile.sha)
-                        mainWindow.webContents.send('tasks:external-update', parse(latestFile.content))
+                        if (getRepoDirty(store, activeRepo)) {
+                            mainWindow.webContents.send('tasks:remote-conflict', parse(latestFile.content))
+                        } else {
+                            await writeLocalTasksMarkdown(owner, repo, latestFile.content)
+                            await writeRepoTasksMarkdown(activeRepo.localPath, latestFile.content)
+                            syncLocalWatcherSnapshot(latestFile.content)
+                            mainWindow.webContents.send('tasks:external-update', parse(latestFile.content))
+                        }
                     } else {
                         store.set('tasksSha', null)
                         mainWindow.webContents.send('tasks:external-update', [])
@@ -183,9 +295,11 @@ export function createIpcHandlers({
         },
 
         'session:get': () => {
+            const activeRepo = store.get('activeRepo')
             return {
                 isAuthenticated: !!store.get('token'),
-                activeRepo: store.get('activeRepo')
+                activeRepo,
+                tasksDirty: activeRepo ? getRepoDirty(store, activeRepo) : false
             }
         },
 
@@ -193,6 +307,7 @@ export function createIpcHandlers({
             store.set('token', null)
             store.set('activeRepo', null)
             store.set('tasksSha', null)
+            store.set('dirtyRepos', {})
             stopPoller()
 
             return { success: true }

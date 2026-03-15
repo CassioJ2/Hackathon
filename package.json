@@ -1,7 +1,7 @@
 {
   "name": "codesprint",
   "version": "0.1.0",
-  "description": "AI-Native Project Manager — syncs tasks with GitHub",
+  "description": "GitHub-synced project manager with local-first kanban and backlog views",
   "main": "out/main/index.js",
   "author": "CassioJ2",
   "private": true,
@@ -9,7 +9,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist": "npm run build && electron-builder",
+    "release:prepare": "node scripts/prepare-release-assets.cjs",
+    "dist": "npm run release:prepare && npm run build && electron-builder",
+    "dist:win": "npm run release:prepare && npm run build && electron-builder --win nsis",
     "test:parser": "node src/main/parser/run-tests.cjs",
     "test:ipc": "node src/main/ipc/run-smoke-tests.cjs",
     "test:backend": "npm.cmd run test:parser && npm.cmd run test:ipc"
@@ -32,23 +34,39 @@
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "eslint": "^9.39.4",
+    "png-to-ico": "^3.0.1",
     "typescript": "~5.9.3",
     "vite": "^5.4.10"
   },
   "build": {
-    "appId": "com.codesprnt.app",
-    "productName": "CodeSprnt",
+    "appId": "com.codesprint.app",
+    "productName": "CodeSprint",
     "directories": {
       "output": "dist"
     },
+    "asar": true,
+    "compression": "maximum",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
     "win": {
+      "icon": "build/icon.ico",
       "target": "nsis",
       "signAndEditExecutable": false
     },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    },
     "mac": {
+      "icon": "build/icon.png",
       "target": "dmg"
     },
     "linux": {
+      "icon": "build/icon.png",
       "target": "AppImage"
     }
   }

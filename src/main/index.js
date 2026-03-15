@@ -25,11 +25,13 @@ function createWindow() {
         minWidth: 900,
         minHeight: 600,
         show: false,
+        icon: join(__dirname, '../../build/icon.png'),
         autoHideMenuBar: true,
         webPreferences: {
             preload: join(__dirname, '../preload/index.js'),
             sandbox: false,
-            contextIsolation: true
+            contextIsolation: true,
+            devTools: isDev
         }
     })
 
@@ -41,6 +43,19 @@ function createWindow() {
         shell.openExternal(details.url)
         return { action: 'deny' }
     })
+
+    if (!isDev) {
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            const isReload = (input.control || input.meta) && input.key.toLowerCase() === 'r'
+            const isDevShortcut =
+                input.key === 'F12' ||
+                ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i')
+
+            if (isReload || isDevShortcut) {
+                event.preventDefault()
+            }
+        })
+    }
 
     if (isDev && process.env['ELECTRON_RENDERER_URL']) {
         mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])

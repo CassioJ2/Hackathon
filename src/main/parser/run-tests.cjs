@@ -1,4 +1,4 @@
-const assert = require('node:assert/strict')
+﻿const assert = require('node:assert/strict')
 const { readFileSync } = require('node:fs')
 const { join } = require('node:path')
 
@@ -45,12 +45,51 @@ run('parse converte tasks e subtasks com status corretamente', () => {
     assert.equal(tasks[1].status, 'done')
 })
 
+run('parse e stringify preservam assignee nos metadados', () => {
+    const markdown = [
+        '# Tasks',
+        '',
+        '- [ ] Implementar assign <!--meta:{"assignee":"cassio","priority":"high"}-->'
+    ].join('\n')
+
+    const tasks = parse(markdown)
+
+    assert.equal(tasks[0].assignee, 'cassio')
+    assert.equal(tasks[0].priority, 'high')
+
+    const roundTrip = stringify(tasks)
+    assert.equal(
+        roundTrip,
+        '# Tasks\n\n- [ ] Implementar assign <!--meta:{"priority":"high","assignee":"cassio"}-->\n'
+    )
+})
+
+run('parse e stringify preservam status backlog via metadado', () => {
+    const markdown = [
+        '# Tasks',
+        '',
+        '- [ ] Revisar backlog IA <!--meta:{"status":"backlog","priority":"medium"}-->'
+    ].join('\n')
+
+    const tasks = parse(markdown)
+
+    assert.equal(tasks[0].status, 'backlog')
+    assert.equal(tasks[0].priority, 'medium')
+
+    const roundTrip = stringify(tasks)
+    assert.equal(
+        roundTrip,
+        '# Tasks\n\n- [ ] Revisar backlog IA <!--meta:{"priority":"medium","status":"backlog"}-->\n'
+    )
+})
+
 run('stringify preserva a estrutura esperada para round-trip', () => {
     const tasks = [
         {
             id: 'TASK-001',
             title: 'Implementar sync',
             status: 'in_progress',
+            assignee: 'maria',
             subtasks: [
                 { id: 'TASK-001-001', title: 'Ler tasks.md', status: 'done' },
                 { id: 'TASK-001-002', title: 'Salvar tasks.md', status: 'pending' }
@@ -61,9 +100,10 @@ run('stringify preserva a estrutura esperada para round-trip', () => {
     const markdown = stringify(tasks)
     const reparsed = parse(markdown)
 
-    assert.equal(markdown, '# Tasks\n\n- [/] Implementar sync\n  - [x] Ler tasks.md\n  - [ ] Salvar tasks.md\n')
+    assert.equal(markdown, '# Tasks\n\n- [/] Implementar sync <!--meta:{"assignee":"maria"}-->\n  - [x] Ler tasks.md\n  - [ ] Salvar tasks.md\n')
     assert.equal(reparsed.length, 1)
     assert.equal(reparsed[0].title, 'Implementar sync')
+    assert.equal(reparsed[0].assignee, 'maria')
     assert.equal(reparsed[0].subtasks.length, 2)
     assert.equal(reparsed[0].subtasks[0].title, 'Ler tasks.md')
     assert.equal(reparsed[0].subtasks[1].status, 'pending')

@@ -17,28 +17,61 @@ export const IPC_CONTRACT = {
             returns: 'Array<{ id, name, fullName, owner, private, updatedAt }>',
             errors: ['Not authenticated']
         },
+        'github:repo-collaborators': {
+            description: 'Lista colaboradores do repositorio ativo ou informado.',
+            args: [{ repo: '{ owner, repo } (optional)' }],
+            returns: 'Array<{ id, login, name, avatarUrl, profileUrl }>',
+            errors: ['Not authenticated', 'No active repo selected']
+        },
+        'repo:pick-local-path': {
+            description: 'Abre o seletor de pasta para vincular o repositorio local clonado.',
+            args: [],
+            returns: 'string | null',
+            errors: []
+        },
+        'repo:open-tasks-file': {
+            description: 'Abre o tasks.md do repositorio local vinculado no editor padrao do sistema.',
+            args: [],
+            returns: '{ success: boolean }',
+            errors: ['No active repo selected', 'No local repo linked. Link a local folder before opening tasks.md.']
+        },
+        'repo:validate-local-path': {
+            description: 'Valida se a pasta escolhida parece ser o clone local do repositorio selecionado.',
+            args: [{ owner: 'string', repo: 'string', localPath: 'string' }],
+            returns: '{ valid: boolean, reason: string | null, remoteUrl: string | null, detectedRepo: { owner, repo } | null }',
+            errors: []
+        },
         'tasks:load': {
             description: 'Carrega o tasks.md do repositorio selecionado.',
-            args: [{ owner: 'string', repo: 'string' }],
+            args: [{ owner: 'string', repo: 'string', localPath: 'string (optional)' }],
             returns: 'Array<Task>',
             errors: ['Not authenticated']
         },
         'tasks:init': {
-            description: 'Cria um tasks.md inicial quando o repositorio ainda nao possui backlog.',
-            args: [{ repo: '{ owner, repo } (optional)', commitMessage: 'string (optional)' }],
+            description: 'Cria ou recria um tasks.md inicial no cache local do repositorio ativo.',
+            args: [{ repo: '{ owner, repo } (optional)', commitMessage: 'string (optional)', force: 'boolean (optional)' }],
             returns: {
                 created: 'boolean',
-                sha: 'string',
+                sha: 'string | null',
                 tasks: 'Array<Task>'
             },
-            errors: ['Not authenticated', 'No active repo selected']
+            errors: ['No active repo selected']
+        },
+        'tasks:cache': {
+            description: 'Salva o estado atual das tasks apenas no cache local.',
+            args: [{ tasks: 'Array<Task>', dirty: 'boolean (optional)' }],
+            returns: {
+                success: 'boolean'
+            },
+            errors: ['No active repo selected']
         },
         'tasks:save': {
-            description: 'Salva o estado atual das tasks no GitHub.',
+            description: 'Envia o cache local para o GitHub e atualiza o cache com a versao remota final.',
             args: [{ tasks: 'Array<Task>', commitMessage: 'string (optional)' }],
             returns: {
                 success: 'boolean',
-                sha: 'string'
+                sha: 'string',
+                tasks: 'Array<Task>'
             },
             errors: [
                 'Not authenticated',
@@ -51,7 +84,8 @@ export const IPC_CONTRACT = {
             args: [],
             returns: {
                 isAuthenticated: 'boolean',
-                activeRepo: '{ owner, repo } | null'
+                activeRepo: '{ owner, repo, localPath? } | null',
+                tasksDirty: 'boolean'
             },
             errors: []
         },
@@ -76,13 +110,26 @@ export const IPC_CONTRACT = {
         'tasks:external-update': {
             description: 'Emitido quando o tasks.md muda externamente e a UI deve recarregar.',
             payload: ['tasks: Array<Task>']
+        },
+        'tasks:remote-conflict': {
+            description: 'Emitido quando existe atualizacao remota, mas ha mudancas locais pendentes.',
+            payload: ['tasks: Array<Task>']
+        },
+        'tasks:local-file-update': {
+            description: 'Emitido quando o tasks.md local muda externamente e a UI deve recarregar.',
+            payload: ['tasks: Array<Task>']
+        },
+        'tasks:local-file-conflict': {
+            description: 'Emitido quando o tasks.md local muda externamente, mas ha mudancas locais pendentes.',
+            payload: ['tasks: Array<Task>']
         }
     },
     models: {
         Task: {
             id: 'string',
             title: 'string',
-            status: '"pending" | "in_progress" | "done"',
+            status: '"backlog" | "pending" | "in_progress" | "done"',
+            assignee: 'string (optional)',
             subtasks: 'Array<Subtask>'
         },
         Subtask: {

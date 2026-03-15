@@ -4,9 +4,12 @@ import TaskCard from "./TaskCard";
 
 export default function SortableTaskCard({
   task,
-  onStatusChange,
+  collaborators,
+  onSubtaskToggle,
   onDelete,
   onEdit,
+  primaryActionLabel,
+  onPrimaryAction,
 }) {
   const {
     attributes,
@@ -27,9 +30,12 @@ export default function SortableTaskCard({
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <TaskCard
         task={task}
-        onStatusChange={onStatusChange}
+        collaborators={collaborators}
+        onSubtaskToggle={onSubtaskToggle}
         onDelete={onDelete}
         onEdit={onEdit}
+        primaryActionLabel={primaryActionLabel}
+        onPrimaryAction={onPrimaryAction}
       />
     </div>
   );
