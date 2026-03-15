@@ -1,28 +1,6 @@
 # Tasks
 
-- [/] Refinar fluxo de sincronizacao da branch tasks <!--meta:{"description":"Garantir que o fluxo de tarefas fique previsivel, seguro e claro para o time.","priority":"high","labels":["sync","github","tasks-branch"],"cardType":"feature","assignee":"CassioJ2"}-->
-  - [ ] Validar comportamento de pull remoto no app
-  - [ ] Revisar comportamento de merge em conflito
-  - [ ] Confirmar sync de AGENTS.md e TASKS_WORKFLOW.md
-- [/] Validar instalador Windows final <!--meta:{"description":"Garantir que o executavel esteja consistente para demonstracao e entrega.","priority":"medium","labels":["release","windows","qa"],"assignee":"CassioJ2"}-->
-  - [ ] Conferir icone do app
-  - [ ] Testar login com GitHub
-  - [ ] Testar vinculacao de repositorio local
-- [ ] Criar roteiro final de apresentacao <!--meta:{"description":"Montar uma narrativa curta e clara para demonstrar o valor do produto.","priority":"medium","labels":["pitch","demo"],"assignee":"CassioJ2"}-->
-  - [ ] Explicar o problema
-  - [ ] Mostrar a solucao local-first
-  - [ ] Mostrar branch tasks e sync
-  - [ ] Encerrar com os diferenciais
-- [ ] Revisar materiais visuais da apresentacao <!--meta:{"description":"Fechar os elementos visuais da entrega para banca e demo.","priority":"medium","labels":["design","apresentacao","branding"],"assignee":"marialuisasanches"}-->
-  - [x] Escolher screenshots finais
-  - [ ] Revisar consistencia do nome CodeSprint
-  - [ ] Ajustar detalhes visuais finais
-- [x] Melhorar experiencia de demo do produto <!--meta:{"description":"Deixar a apresentacao do backlog, board e sync pronta para demonstracao ao vivo.","priority":"high","labels":["demo","ux","pitch"],"cardType":"feature","assignee":"marialuisasanches"}-->
-  - [ ] Revisar textos da interface
-  - [ ] Conferir legibilidade dos cards
-  - [ ] Testar fluxo board -> backlog -> sync
-- [x] Finalizar submissao da competicao <!--meta:{"description":"Fechar os materiais e o estado final do projeto para entrega e apresentacao.","priority":"high","labels":["competicao","release","pitch"],"cardType":"milestone","assignee":"CassioJ2"}-->
-  - [ ] Revisar README com screenshots
-  - [ ] Validar nome, logo e branding final
-  - [ ] Conferir se o repositorio esta limpo para avaliacao
-- [ ] teste <!--meta:{"cardType":"spike"}-->
+- [ ] Setup inicial do projeto
+- [ ] Definir primeiras tasks
+  - [ ] Revisar backlog
+  - [ ] Priorizar sprint
