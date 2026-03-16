@@ -65,19 +65,19 @@ Essa abordagem mantem o projeto transparente, portavel e facil de integrar ao fl
 
 ### Tela de Login
 
-![Tela de login](img/codesprintmain.png) 
+![Tela de login](img/codesprintmain.png)
 
 ### Selecao de Repositorio
 
-![Selecao de Repositorio](img/repomain.png) 
+![Selecao de Repositorio](img/repomain.png)
 
 ### Visualizacao de Backlog
 
-![Visualizacao de Backlog](img/backlogmain.png) 
+![Visualizacao de Backlog](img/backlogmain.png)
 
 ### Visualizacao de Board
- 
-![Visualizacao de Backlog](img/boardmain.png)
+
+![Visualizacao de Board](img/boardmain.png)
 
 ### Detalhes da Tarefa / Fluxo de Edicao
 
@@ -122,6 +122,25 @@ A aplicacao esta organizada em torno de:
 - logica de parser para leitura e escrita de `tasks.md`
 - integracao com GitHub para autenticacao, repositorios, colaboradores e sincronizacao
 
+## Configuracao
+
+Para utilizar o CodeSprint, o ambiente precisa ter:
+
+- acesso a uma conta GitHub
+- um repositorio acessivel pelo usuario
+- um clone local desse repositorio na maquina
+- o `GITHUB_CLIENT_ID` configurado para autenticacao OAuth no app
+
+## Como Usar
+
+1. Entrar com a conta do GitHub.
+2. Selecionar o repositorio desejado.
+3. Vincular a pasta local correspondente ao clone do projeto.
+4. Criar, editar e organizar tarefas no backlog ou no board.
+5. Editar o `tasks.md` diretamente no app ou pelo editor local.
+6. Usar `Jogar para nuvem` para enviar mudancas locais.
+7. Usar `Puxar da nuvem` para revisar mudancas recebidas do remoto.
+
 ## Evolucoes Futuras
 
 - empacotamento de release mais completo
@@ -147,9 +166,15 @@ O CodeSprint propoe uma ponte mais natural entre planejamento e implementacao.
 
 Em vez de forcar as equipes a escolher entre organizacao visual e fluxo baseado em repositorio, a plataforma conecta os dois lados. Isso cria um processo mais transparente, melhora a colaboracao e mantem a gestao do projeto perto de onde o trabalho realmente acontece.
 
-## Nome dos membros:
+## Membros
 
-- [Cássio João Teodoro de Almeida](https://github.com/CassioJ2)
-- [João Victor Mesquita](https://github.com/eggdraz)
+- [Cassio Joao Teodoro de Almeida](https://github.com/CassioJ2)
+- [Joao Victor Mesquita](https://github.com/eggdraz)
 - [Maria Luisa Rabelo Medeiros Sanches](https://github.com/marialuisasanches)
-- Ana Beatriz Amaro Linhares 
+- Ana Beatriz Amaro Linhares
+
+## Licenca
+
+Este projeto esta licenciado sob a licenca MIT.
+
+Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
